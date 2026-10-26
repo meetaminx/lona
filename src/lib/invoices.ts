@@ -30,9 +30,8 @@ export class InvoiceError extends Error {
   }
 }
 
-export function appUrl(): string {
-  return (process.env.APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
-}
+export { appUrl } from "@/lib/url";
+import { appUrl } from "@/lib/url";
 
 export function hostedUrl(invoiceId: string): string {
   return `${appUrl()}/pay/${invoiceId}`;
