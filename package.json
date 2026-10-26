@@ -13,8 +13,7 @@
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.11",
-    "@fontsource/gloock": "^5.3.0",
-    "@fontsource/schibsted-grotesk": "^5.3.0",
+    "@fontsource-variable/archivo": "^5.3.0",
     "drizzle-orm": "^0.45.4",
     "next": "^15.5.28",
     "postgres": "^3.4.9",

@@ -1,72 +1,81 @@
 /* Tokens from DESIGN.md. Change them there first. */
+/* Tokens from DESIGN.md (v2). Change them there first. */
 :root {
-  --paper: #edf0f2;
-  --paper-raised: #f7f8f9;
-  --ink: #16223a;
-  --ink-soft: #4a5871;
-  --rule: #c7cfd8;
-  --amber: #c98a12;
+  --paper: #f3f5f7;
+  --paper-raised: #ffffff;
+  --paper-sunk: #e9edf1;
+  --ink: #0e1a2e;
+  --ink-soft: #4b586d;
+  --ink-faint: #8792a4;
+  --rule: #d5dbe3;
+  --rule-strong: #b8c1cd;
+  --amber: #d69214;
   --amber-ink: #8a5d08;
-  --amber-wash: #f3e4c2;
-  --blue: #1f5fae;
-  --blue-wash: #d7e3f2;
-  --red: #b23a2e;
-  --red-wash: #f2dcd8;
-  --green: #2f7a4f;
-  --green-wash: #d9ebdf;
-  --on-blue: #f7f8f9;
+  --amber-wash: #f6ead0;
+  --blue: #1b5cd6;
+  --blue-ink: #1449ad;
+  --blue-wash: #e1eafa;
+  --red: #b8392c;
+  --red-wash: #f6e0dc;
+  --green: #22744a;
+  --green-wash: #dcefe3;
+  --on-blue: #ffffff;
 
-  --font-display: "Gloock", Georgia, "Times New Roman", serif;
-  --font-text: "Schibsted Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* The night section: always dark, in both themes */
+  --night: #0a1322;
+  --night-raised: #111c30;
+  --night-rule: #24324a;
+  --night-ink: #e8edf4;
+  --night-soft: #96a3b8;
+
+  --font-display: "Archivo Variable", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-text: "Archivo Variable", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-code: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
 
   --r-control: 6px;
-  --r-panel: 10px;
+  --r-panel: 12px;
+  --r-frame: 16px;
   --r-chip: 4px;
-  --shadow-float: 0 1px 0 var(--rule), 0 12px 32px -18px rgba(22, 34, 58, 0.35);
+  --shadow-1: 0 1px 2px rgba(14, 26, 46, 0.06), 0 0 0 1px rgba(14, 26, 46, 0.05);
+  --shadow-float: 0 1px 2px rgba(14, 26, 46, 0.06), 0 18px 40px -20px rgba(14, 26, 46, 0.32);
+  --shadow-stage: 0 2px 4px rgba(14, 26, 46, 0.04), 0 40px 80px -36px rgba(14, 26, 46, 0.45);
   --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
-  --max: 1120px;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --t-fast: 160ms;
+  --t-base: 280ms;
+  --t-slow: 640ms;
+  --max: 1200px;
   color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --paper: #0f1626;
-    --paper-raised: #172034;
-    --ink: #e6eaf0;
-    --ink-soft: #a3aec0;
-    --rule: #2b3650;
-    --amber: #e2a93a;
-    --amber-ink: #e2a93a;
-    --amber-wash: #3a2f17;
-    --blue: #6fa2e6;
-    --blue-wash: #1c2c48;
-    --red: #e07a6e;
-    --red-wash: #3b1f1d;
-    --green: #6cc093;
-    --green-wash: #183326;
-    --on-blue: #0f1626;
-    --shadow-float: 0 1px 0 var(--rule), 0 16px 40px -20px rgba(0, 0, 0, 0.7);
+    --paper: #0b1220;
+    --paper-raised: #121b2c;
+    --paper-sunk: #080e19;
+    --ink: #e8edf4;
+    --ink-soft: #a0acbf;
+    --ink-faint: #6c7a90;
+    --rule: #233049;
+    --rule-strong: #34435f;
+    --amber: #e8ab3c;
+    --amber-ink: #e8ab3c;
+    --amber-wash: #33280f;
+    --blue: #6b9cf0;
+    --blue-ink: #8db3f5;
+    --blue-wash: #16264a;
+    --red: #e4806f;
+    --red-wash: #3a1d19;
+    --green: #67c493;
+    --green-wash: #142d20;
+    --on-blue: #0b1220;
+    --night: #060b15;
+    --night-raised: #0e1727;
+    --shadow-1: 0 0 0 1px rgba(255, 255, 255, 0.05);
+    --shadow-float: 0 0 0 1px rgba(255, 255, 255, 0.05), 0 18px 40px -20px rgba(0, 0, 0, 0.8);
+    --shadow-stage: 0 0 0 1px rgba(255, 255, 255, 0.05), 0 40px 80px -36px rgba(0, 0, 0, 0.9);
     color-scheme: dark;
   }
-}
-:root[data-theme="dark"] {
-  --paper: #0f1626;
-  --paper-raised: #172034;
-  --ink: #e6eaf0;
-  --ink-soft: #a3aec0;
-  --rule: #2b3650;
-  --amber: #e2a93a;
-  --amber-ink: #e2a93a;
-  --amber-wash: #3a2f17;
-  --blue: #6fa2e6;
-  --blue-wash: #1c2c48;
-  --red: #e07a6e;
-  --red-wash: #3b1f1d;
-  --green: #6cc093;
-  --green-wash: #183326;
-  --on-blue: #0f1626;
-  color-scheme: dark;
 }
 
 *,
@@ -98,27 +107,38 @@ p {
 
 .display {
   font-family: var(--font-display);
-  font-weight: 400;
-  font-size: clamp(2.6rem, 6.4vw, 4.25rem);
-  line-height: 1.02;
-  letter-spacing: -0.01em;
+  font-stretch: 125%;
+  font-weight: 640;
+  font-size: clamp(2.7rem, 6.2vw, 5.1rem);
+  line-height: 0.98;
+  letter-spacing: -0.025em;
 }
 .h1 {
   font-family: var(--font-display);
-  font-weight: 400;
-  font-size: clamp(2rem, 4vw, 2.75rem);
-  line-height: 1.08;
+  font-stretch: 118%;
+  font-weight: 620;
+  font-size: clamp(2rem, 4.2vw, 3.1rem);
+  line-height: 1.04;
+  letter-spacing: -0.02em;
 }
 .h2 {
   font-family: var(--font-display);
-  font-weight: 400;
-  font-size: 1.75rem;
-  line-height: 1.2;
+  font-stretch: 112%;
+  font-weight: 600;
+  font-size: 1.6rem;
+  line-height: 1.15;
+  letter-spacing: -0.012em;
 }
 .h3 {
   font-weight: 600;
-  font-size: 1.125rem;
+  font-size: 1.08rem;
   line-height: 1.35;
+  letter-spacing: -0.005em;
+}
+.lede {
+  font-size: 1.2rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
 }
 .small {
   font-size: 0.875rem;

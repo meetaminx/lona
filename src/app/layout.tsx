@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
-import "@fontsource/gloock/400.css";
-import "@fontsource/schibsted-grotesk/400.css";
-import "@fontsource/schibsted-grotesk/500.css";
-import "@fontsource/schibsted-grotesk/600.css";
+import "@fontsource-variable/archivo/wdth.css";
 import "./globals.css";
 import "./site.css";
+import "./product.css";
+import "./marketing.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.APP_URL ?? "http://localhost:3000"),

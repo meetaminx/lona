@@ -3,6 +3,8 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { merchants, paymentLinks } from "@/db/schema";
 import { Mark } from "@/components/logo";
+import { Medallion } from "@/components/medallion";
+import { Amount } from "@/components/amount";
 import { openPaymentLink } from "@/lib/links";
 import { formatAmount } from "@/lib/money";
 
@@ -25,27 +27,43 @@ export default async function LinkPage({ params }: { params: Promise<{ slug: str
   const [m] = await d.select({ name: merchants.businessName }).from(merchants).where(eq(merchants.id, link.merchantId));
   return (
     <main className="checkout">
-      {!link.livemode && <p className="chip chip-amber" role="note">Test checkout. No real funds move.</p>}
-      <article className="ticket">
-        <header className="ticket-top">
-          <p className="ticket-merchant">{m?.name}</p>
-          <p className="ticket-desc">{link.title}</p>
-          <p className="ticket-amount num">{formatAmount(link.amountCents)}<small>USD</small></p>
-        </header>
-        <div className="perf" aria-hidden="true" />
-        <div className="ticket-body">
+      <div className="checkout-card">
+        <section className="checkout-summary">
+          <div className="merchant">
+            <Medallion seed={m?.name ?? "merchant"} size={40} />
+            <div>
+              <p className="merchant-name">{m?.name}</p>
+              {!link.livemode && <p className="chip chip-amber">Test mode</p>}
+            </div>
+          </div>
+          <div className="summary-amount">
+            <p className="soft">{link.title}</p>
+            <Amount value={formatAmount(link.amountCents)} currency="USD" className="summary-total" />
+          </div>
+          <p className="checkout-brand small soft">
+            <Mark size={14} />
+            <span>Checkout by <a href="/">Lona</a></span>
+          </p>
+        </section>
+        <section className="checkout-pay">
           {link.active ? (
-            <form action={open} style={{ display: "grid", gap: 14 }}>
+            <form action={open} className="start">
+              <h2 className="h2">Pay with Zcash</h2>
               {link.description && <p className="soft">{link.description}</p>}
+              <p className="soft">
+                You pay from a shielded Zcash wallet. {m?.name} receives US dollars as a stablecoin. Your wallet history stays private.
+              </p>
               <input type="hidden" name="slug" value={slug} />
               <button className="btn btn-primary btn-lg btn-block">Continue to payment</button>
             </form>
           ) : (
-            <p className="soft">This payment link has been turned off. Contact {m?.name} for another way to pay.</p>
+            <div className="start">
+              <h2 className="h2">This link is turned off</h2>
+              <p className="soft">Contact {m?.name} for another way to pay.</p>
+            </div>
           )}
-        </div>
-      </article>
-      <p className="checkout-foot"><Mark size={16} /><span>Checkout by <a href="/">Lona</a>.</span></p>
+        </section>
+      </div>
     </main>
   );
 }

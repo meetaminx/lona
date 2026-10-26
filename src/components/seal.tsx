@@ -23,6 +23,8 @@ export function Seal({
   label?: string;
 }) {
   const rings = useMemo(() => sealRings(id, 200), [id]);
+  // Fine lines vanish at thumbnail sizes; thicken them as the seal shrinks.
+  const k = size < 80 ? 200 / size / 2.2 : 1;
   const color = { amber: "var(--amber)", blue: "var(--blue)", red: "var(--red)", muted: "var(--ink-soft)" }[tone];
   return (
     <svg
@@ -40,13 +42,13 @@ export function Seal({
           const drawn = stage >= i + 1;
           return (
             <g key={i}>
-              <path d={ring.d} fill="none" stroke="var(--rule)" strokeWidth={ring.width} opacity={0.55} />
+              <path d={ring.d} fill="none" stroke="var(--rule)" strokeWidth={ring.width * k} opacity={size < 80 ? 0.35 : 0.55} />
               <path
                 d={ring.d}
                 pathLength={1}
                 fill="none"
                 stroke={color}
-                strokeWidth={ring.width}
+                strokeWidth={ring.width * k}
                 opacity={ring.opacity}
                 strokeDasharray="1 1"
                 strokeDashoffset={drawn ? 0 : 1}

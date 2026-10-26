@@ -123,3 +123,48 @@ export function sealRings(id: string, size = 200): SealRing[] {
     { d: rosette({ cx: c, cy: c, radius: size * 0.13, R: coreR, r: corer, d: corer * (1 + rand() * 0.5), rotation: rot() }), width: 0.9, opacity: 0.95 },
   ];
 }
+
+/**
+ * A guilloche ring: interlaced wavy circles, the border pattern on banknotes.
+ * Used as the frame around the checkout QR. Returns one path per line so lines can draw in stages.
+ */
+export function guillocheRing(opts: {
+  cx: number;
+  cy: number;
+  radius: number;
+  width: number;
+  lines: number;
+  waves: number;
+  samples?: number;
+}): string[] {
+  const { cx, cy, radius, width, lines, waves, samples = 720 } = opts;
+  const out: string[] = [];
+  for (let i = 0; i < lines; i++) {
+    const phase = (i / lines) * Math.PI * 2;
+    const base = radius + (i / Math.max(lines - 1, 1) - 0.5) * width * 0.35;
+    let p = "";
+    for (let s = 0; s <= samples; s++) {
+      const t = (s / samples) * Math.PI * 2;
+      const r = base + (width / 2) * 0.62 * Math.sin(waves * t + phase) + (width / 2) * 0.2 * Math.sin((waves * 2 + 1) * t - phase);
+      p += `${s === 0 ? "M" : "L"}${f(cx + r * Math.cos(t))} ${f(cy + r * Math.sin(t))}`;
+    }
+    out.push(p + "Z");
+  }
+  return out;
+}
+
+/** Circle path for SVG textPath, starting at the top and running clockwise. */
+export function circlePath(cx: number, cy: number, r: number): string {
+  return `M${f(cx)} ${f(cy - r)}a${f(r)} ${f(r)} 0 1 1 0 ${f(2 * r)}a${f(r)} ${f(r)} 0 1 1 0 ${f(-2 * r)}`;
+}
+
+/** A small medallion for a network or merchant: two rosettes derived from a key. */
+export function medallion(key: string, size = 48): string[] {
+  const rand = seeded(hashString(`medallion:${key}`));
+  const c = size / 2;
+  const pick = <T,>(xs: T[]) => xs[Math.floor(rand() * xs.length)];
+  return [
+    rosette({ cx: c, cy: c, radius: size * 0.47, R: pick([18, 20, 22, 24]), r: pick([5, 7]), d: 4 + rand() * 3, rotation: rand() * 6, samplesPerTurn: 160 }),
+    rosette({ cx: c, cy: c, radius: size * 0.26, R: pick([9, 10, 11]), r: pick([3, 4]), d: 2 + rand() * 2, rotation: rand() * 6, samplesPerTurn: 160 }),
+  ];
+}

@@ -1,108 +1,102 @@
-# Lona design system
+# Lona design system (v2)
 
-Lona is a checkout for merchants who want to accept shielded Zcash and get paid in stablecoins. The design borrows from the one industry that has spent two centuries making money look trustworthy and hard to copy: security printing. Banknotes, cheques and share certificates use guilloche (fine interlaced line patterns), intaglio ink and serial numbers. Lona uses the same vocabulary, drawn in code, to say "this payment is sealed".
+Lona is checkout for merchants who accept shielded Zcash and get paid in stablecoins. The visual language comes from security printing: guilloche line work, microprint and engraved seals, the craft that has made money look trustworthy for two centuries. v2 raises execution to the level of the best payments brands (see `AUDIT.md` for the research behind it): the product itself is the main illustration, and the guilloche is a structural system, not decoration.
 
 Every agent or person building Lona UI reads this file first.
 
 ## 1. Principles
 
-1. **Security print, not crypto neon.** No glows, no gradients used as decoration, no glassmorphism, no 3D coins. Line work, paper and ink.
-2. **One memorable thing: the seal.** Every invoice has its own guilloche seal, generated from its ID. It draws itself as the payment progresses and is complete when funds settle. Everything around it stays quiet.
-3. **Say what is private and what is not.** The customer's wallet and history are shielded. The deposit amount and the merchant's settlement are public. Copy never claims more privacy than the system gives.
-4. **Merchant language, not chain language.** "Payment received", "Paid out to your wallet", not "intent executed" or "solver filled". Chain detail lives one click away for those who want it.
-5. **Motion explains state.** Animation only shows something changing: a payment moving, a seal completing, a panel opening. One orchestrated sequence per page at most.
+1. **The product is the illustration.** Marketing shows real Lona UI (the checkout panel, the dashboard form, the wallet send, the payout notice) composed into scenes. Abstract art supports; it never replaces the product.
+2. **One signature: the seal.** Every invoice has a unique guilloche seal generated from its ID. At checkout a guilloche ring frames the QR and draws itself as the payment moves; when funds land the QR gives way to the invoice's seal. The same seal appears as a thumbnail on every invoice row.
+3. **Say exactly what is private.** Customer wallet, balance and history: private. Deposit amount and the merchant payout: public. Copy and illustration never imply more.
+4. **Merchant language.** "Payment received", "Paid out to your wallet". Chain detail one click away.
+5. **Motion explains state and can be paused.** Self-playing scenes carry a visible pause control. Nothing animates on scroll, nothing follows the cursor.
 
 ## 2. Color
 
-Inks on security paper. Two accent inks map to the two sides of every payment: amber for the customer paying in ZEC, blue for the merchant settling in USDC.
+| Token | Light | Dark | Role |
+|---|---|---|---|
+| `--paper` | `#F3F5F7` | `#0B1220` | Page |
+| `--paper-raised` | `#FFFFFF` | `#121B2C` | Panels, checkout card |
+| `--paper-sunk` | `#E9EDF1` | `#080E19` | Stages behind product scenes, checkout summary pane |
+| `--ink` | `#0E1A2E` | `#E8EDF4` | Text, line work |
+| `--ink-soft` / `--ink-faint` | `#4B586D` / `#8792A4` | `#A0ACBF` / `#6C7A90` | Secondary / tertiary text |
+| `--rule` / `--rule-strong` | `#D5DBE3` / `#B8C1CD` | `#233049` / `#34435F` | Borders |
+| `--amber` (`--amber-ink` for text) | `#D69214` (`#8A5D08`) | `#E8AB3C` | The customer's ZEC side |
+| `--blue` | `#1B5CD6` | `#6B9CF0` | The merchant's USDC side, primary actions |
+| `--green` / `--red` | `#22744A` / `#B8392C` | `#67C493` / `#E4806F` | Paid out / failed states only |
+| `--night` | `#0A1322` | `#060B15` | Always-dark sections (observer, closing) |
+| `--chart-bar` | `#1B5CD6` | `#5A8DE8` | Payout chart (validated for both surfaces) |
 
-| Token | Hex | Role |
-|---|---|---|
-| `--paper` | `#EDF0F2` | Page background. Cool, slightly blue-grey, like cheque stock. |
-| `--paper-raised` | `#F7F8F9` | Panels, inputs, the checkout ticket. |
-| `--ink` | `#16223A` | Primary text and line work. Intaglio navy, not black. |
-| `--ink-soft` | `#4A5871` | Secondary text. |
-| `--rule` | `#C7CFD8` | Borders, dividers, table rules. |
-| `--amber` | `#C98A12` | ZEC side: customer, pay, deposit. Text-safe on paper. |
-| `--amber-wash` | `#F3E4C2` | Amber fills behind text. |
-| `--blue` | `#1F5FAE` | USDC side: merchant, settle, payout. Also links and primary actions. |
-| `--blue-wash` | `#D7E3F2` | Blue fills behind text. |
-| `--red` | `#B23A2E` | Errors, failed and refunded states only. |
-| `--green` | `#2F7A4F` | Settled state only. |
+Rhythm: light sections alternate with `.night` sections, which redefine the tokens locally so every component works inside them unchanged.
 
-Dark mode swaps paper and ink: `--paper #0F1626`, `--paper-raised #172034`, `--ink #E6EAF0`, `--ink-soft #A3AEC0`, `--rule #2B3650`, amber `#E2A93A`, blue `#6FA2E6`.
-
-Never: purple, gradients as decoration, pure black `#000`, neon green.
+Never: purple, decorative gradients, pure black.
 
 ## 3. Type
 
-| Role | Family | Use |
+One family, **Archivo** (variable, weight 100 to 900, width 62% to 125%). Width is the display device: expanded lettering echoes the denomination lettering on notes and cheques; normal width carries text.
+
+| Role | Width | Weight | Size | Tracking |
+|---|---|---|---|---|
+| `.display` (hero) | 106 to 125% | 640 | up to 4 to 5.1rem | -0.025 to -0.03em |
+| `.h1` | 118% | 620 | up to 3.1rem | -0.02em |
+| `.h2` | 112% | 600 | 1.6rem | -0.012em |
+| `.h3` | 100% | 600 | 1.08rem | -0.005em |
+| Body | 100% | 400 | 1rem / 1.55 | 0 |
+| Logo wordmark | 125% | 700 | 1.35rem | -0.03em |
+
+Headline amounts use `<Amount>`: superscript cents in the soft ink, currency as a small suffix. Proportional figures (Archivo's tabular figures add uneven gaps around punctuation). Code uses the system monospace stack, only for code.
+
+Sentence case. No all-caps labels or tracked eyebrows (microprint is illustration, not a label). No single highlighted word in a headline.
+
+## 4. Shape, depth, space
+
+- Radius by hierarchy: controls 6px, panels 12px, frames and scenes 16px, chips 4px. Never pill-shaped.
+- Shadows: `--shadow-1` (resting card), `--shadow-float` (cards inside scenes), `--shadow-stage` (the hero checkout, checkout page, code panel).
+- Structural column rules (`.grid-lines`) run behind hero and night sections at one sixth of the max width, faded at the ends.
+- Max width 1200px. Section padding 120px (80px mobile).
+
+## 5. Illustration system
+
+All generated in code from `src/lib/guilloche.ts`. No stock images, AI images, emoji, icon fonts or third-party logos.
+
+| Piece | Function | Used for |
 |---|---|---|
-| Display | **Gloock** (high-contrast engraved serif) | Page titles, hero, amounts on the checkout ticket, the receipt total. |
-| Text and UI | **Schibsted Grotesk** | Everything else: body, labels, buttons, tables. |
+| Seal | `sealRings(id)` four hypotrochoid rings | Invoice identity: checkout centre when paid, row thumbnails, detail page |
+| Guilloche ring | `guillocheRing()` twelve interlaced wavy circles | The frame around the checkout QR, drawn in stages |
+| Microprint | `circlePath()` + SVG `textPath` fitted with `textLength` | Ring of tiny repeated lettering around the frame |
+| Medallion | `medallion(key)` two small rosettes | Identity for merchants and networks instead of logos |
+| Wave band | `waveBand()` | The swap network in the route animation |
+| Ghost rosette | `rosette()` at large scale, faint | Hero background |
 
-Use proportional lining figures. Schibsted Grotesk's tabular figures space out commas, colons and points, so `tabular-nums` is not used. Addresses and hashes use Schibsted Grotesk with `letter-spacing: 0.02em` and middle truncation (`t1Ab4...9xQe`), not a monospace face.
-
-Scale (rem, 1rem = 16px), ratio about 1.25:
-
-| Step | Size | Line height | Family |
-|---|---|---|---|
-| `display` | 4.25 | 1.02 | Gloock |
-| `h1` | 2.75 | 1.08 | Gloock |
-| `h2` | 1.75 | 1.2 | Gloock |
-| `h3` | 1.125 | 1.35 | Schibsted 600 |
-| `body` | 1 | 1.55 | Schibsted 400 |
-| `small` | 0.875 | 1.45 | Schibsted 400 |
-| `micro` | 0.75 | 1.4 | Schibsted 500 |
-
-Rules: sentence case everywhere. No all-caps labels, no tracked-out eyebrows above headings, no single highlighted word in a headline. Body lines stay under 72 characters.
-
-## 4. Shape and space
-
-- Spacing unit 4px. Common steps: 8, 12, 16, 24, 32, 48, 72, 120.
-- Radius by hierarchy, never one radius for everything:
-  - inputs and buttons: 6px (rectangular, never pill-shaped)
-  - panels and the checkout ticket: 10px
-  - status chips: 4px
-- Borders do the separating. Shadows only on things that float (menus, the checkout ticket on mobile): `0 1px 0 var(--rule), 0 12px 32px -18px rgba(22,34,58,.35)`.
-- Max content width 1120px. Dashboard uses a 232px left rail.
-
-## 5. Illustration
-
-All illustration is generated line art in SVG. No stock photos, no AI images, no emoji, no icon fonts.
-
-- **Guilloche rosette**: hypotrochoid curves, 1px ink strokes, 0.6 to 0.9 opacity. Used for the invoice seal and the logo mark.
-- **Guilloche band**: stacked phase-shifted sine waves. Used as the "shielded" zone in the hero and as dividers between major sections.
-- **Seal**: rosette parameters (lobes, inner radius, pen offset, rotation) derived from a hash of the invoice ID, so no two invoices share a seal. Amber while waiting for the customer, blue once paid out.
-- Icons: 20px, 1.5px stroke, drawn in the same line style, square line caps.
+Product vignettes live in `src/components/scenes/`: wallet phone, payout card, webhook card, invoice composer, route, observer, feature cards, code tabs.
 
 ## 6. Motion
 
-| Moment | What moves | Duration | Easing |
-|---|---|---|---|
-| Hero, once on load | Band lines draw in, a payment note crosses the band (amber in, blue out), the receipt appears | 3.2s total | `cubic-bezier(.2,.7,.2,1)` |
-| Checkout seal | Rings of the seal draw as status advances: waiting (1 ring), received (2), converting (3), paid out (all rings, then a slow 40s rotation) | 900ms per stage | same |
-| Status change | Chip color crossfade | 200ms | ease-out |
-| Panels and menus | Opacity and 4px translate | 160ms | ease-out |
+| Moment | Behaviour | Timing |
+|---|---|---|
+| Hero scene | Self-playing 13s loop: wallet sends, frame draws (amber), received, converting, payout card arrives, seal completes (blue). Pause control. Reduced motion shows the final frame. | Ring lines 1100ms each, staggered 140ms |
+| Walkthrough | Four steps auto-advance every 5.2s with a progress bar; click to jump; pause control | Scene swap 420ms |
+| Checkout frame | Draws from empty on load; three more lines per stage; seal draws in on payout, then turns once a minute | 1100 to 1400ms, `--ease-out` |
+| Route | ZEC enters the band, vanishes, USDC leaves | 3.6s loop |
+| UI changes | Payout card drop-in, flow bars, FAQ chevron, chip colour | 160 to 520ms |
 
-No scroll-triggered entrances, no hover lifts on cards, no cursor effects, no parallax. `prefers-reduced-motion: reduce` shows final states with no movement.
+Easing: `--ease-out: cubic-bezier(.16,1,.3,1)`. Durations: `--t-fast` 160ms, `--t-base` 280ms, `--t-slow` 640ms. No scroll-triggered entrances, no hover lifts, no cursor effects. `prefers-reduced-motion` respected everywhere.
 
 ## 7. Components
 
-- **Button primary**: blue fill, paper text, 6px radius, 40px tall, label says the exact action ("Create invoice", "Copy address"). No arrows in labels.
-- **Button secondary**: transparent, 1px ink border.
-- **Status chip**: 4px radius, wash background, ink text, a 6px dot. Names: Open, Awaiting payment, Payment received, Converting, Paid out, Expired, Underpaid, Refunded, Failed.
-- **Checkout ticket**: the hosted payment page is a single ticket. Top: merchant name and description. Middle: ZEC amount in Gloock, QR, deposit address with copy. Bottom: the seal and a plain-language status line. Perforation line (dashed rule with half-circle notches) separates the stub.
-- **Tables**: rule lines between rows, no zebra striping, amounts right-aligned with tabular numbers.
-- **Code blocks**: `--paper-raised` background, 1px rule border, Schibsted Grotesk is not used here; code uses the system monospace stack because it is code.
+- **Buttons**: primary (blue), secondary (ink border), quiet, danger; 40px or 48px; labels state the action. No arrows in labels.
+- **PayPanel** (`components/pay-panel.tsx`): the payment state machine view, shared by the real checkout and the hero scene.
+- **SealFrame**: ring + microprint + QR or seal.
+- **Status chip**: 4px radius, wash fill, dot. Open, Awaiting payment, Payment received, Converting, Paid out, Expired, Underpaid, Refunded, Failed, Canceled.
+- **Checkout card**: summary pane (merchant medallion, amount, route of three dots) and pay pane side by side; stacked on mobile with an "Open in Zcash wallet" link.
+- **Payout chart**: one series, rounded bar tops, 2px gaps, tooltip on hover and focus, hidden table for screen readers.
+- **Timeline**: invoice detail history with real timestamps from events.
 
 ## 8. Copy
 
-- Plain verbs, sentence case, no filler, no em dashes.
-- Name things by what the merchant does: "Get paid", "Payout wallet", "Notifications to your server".
-- No invented numbers. No fake reviews, customer counts, logos or testimonials. Empty states invite the first action.
-- Errors say what happened and what to do: "That address is not a Base address. Base addresses start with 0x and are 42 characters long."
+Plain verbs, sentence case, no em dashes, no filler. No invented metrics, reviews, customer counts or logos. Example data in scenes uses a fictional merchant (Kiln Coffee). Disclose near the top that Lona is software, not a bank or exchange, and who performs conversions.
 
 ## 9. Do not
 
-Purple or gradient washes, pill buttons, emoji, glow effects, glassmorphism, stock or AI photos, fake social proof, vague hero lines ("The future of payments"), scroll animations, cursor trails, "Made with" badges, monospace used as decoration, all-caps eyebrows, arrows appended to buttons.
+Purple, decorative gradients, pill buttons, emoji, glows, glassmorphism (the header's backdrop blur is the one exception), stock or AI imagery, fake social proof, vague hero lines, scroll animations, cursor effects, "Made with" badges, monospace outside code, all-caps eyebrows, arrows in buttons, other companies' logos.

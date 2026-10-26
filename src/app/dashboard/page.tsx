@@ -1,12 +1,14 @@
 import Link from "next/link";
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, gte, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { invoices } from "@/db/schema";
 import { setupState } from "@/app/actions/dashboard";
 import { IconCheck } from "@/components/icons";
 import { InvoiceTable } from "@/components/invoice-table";
 import { isLivemode, requireMerchant } from "@/lib/auth";
-import { formatUsd } from "@/lib/money";
+import { formatAmount } from "@/lib/money";
+import { Amount } from "@/components/amount";
+import { PayoutChart, type DayTotal } from "@/components/payout-chart";
 
 export const metadata = { title: "Overview" };
 
@@ -25,6 +27,24 @@ export default async function Overview() {
     })
     .from(invoices)
     .where(scope);
+  const since = new Date(Date.now() - 29 * 86_400_000);
+  since.setUTCHours(0, 0, 0, 0);
+  const daily = await d
+    .select({
+      day: sql<string>`to_char(date_trunc('day', ${invoices.paidOutAt} at time zone 'UTC'), 'YYYY-MM-DD')`,
+      cents: sql<number>`sum(${invoices.amountCents})::int`,
+      count: sql<number>`count(*)::int`,
+    })
+    .from(invoices)
+    .where(and(scope, eq(invoices.status, "paid_out"), gte(invoices.paidOutAt, since)))
+    .groupBy(sql`1`);
+  const byDay = new Map(daily.map((r) => [r.day, r]));
+  const days: DayTotal[] = Array.from({ length: 30 }, (_, i) => {
+    const key = new Date(since.getTime() + i * 86_400_000).toISOString().slice(0, 10);
+    const r = byDay.get(key);
+    return { day: key, cents: r?.cents ?? 0, count: r?.count ?? 0 };
+  });
+  const last30 = days.reduce((a, b) => a + b.cents, 0);
   const setup = await setupState(m.id, live);
   const steps = [
     { done: setup.settlement, title: "Set your payout wallet", body: "Choose the stablecoin and network you want to receive.", href: "/dashboard/settlement", cta: "Set wallet" },
@@ -65,21 +85,26 @@ export default async function Overview() {
         </section>
       )}
 
-      <section className="panel totals" aria-label="Totals">
-        <div>
-          <p className="small soft">Paid out to your wallet</p>
-          <p className="amount num">{formatUsd(totals.paid)}</p>
-          <p className="small soft">{totals.paidCount} {totals.paidCount === 1 ? "payment" : "payments"}</p>
+      <section className="panel" aria-labelledby="payouts-h">
+        <div className="overview-top">
+          <div>
+            <h2 id="payouts-h" className="small soft">Paid out to your wallet, last 30 days</h2>
+            <Amount value={formatAmount(last30)} prefix="$" className="overview-amount" />
+            <p className="small soft">{totals.paidCount} {totals.paidCount === 1 ? "payment" : "payments"} all time, {live ? "live" : "test"} mode</p>
+          </div>
+          <dl className="overview-stats">
+            <div>
+              <dt>In progress</dt>
+              <dd>{totals.inFlight}</dd>
+            </div>
+            <div>
+              <dt>Need attention</dt>
+              <dd className={totals.needsAttention ? "is-bad" : ""}>{totals.needsAttention}</dd>
+            </div>
+          </dl>
         </div>
-        <div>
-          <p className="small soft">Payments in progress</p>
-          <p className="amount num">{totals.inFlight}</p>
-          <p className="small soft">Waiting for the customer or converting</p>
-        </div>
-        <div>
-          <p className="small soft">Need your attention</p>
-          <p className="amount num">{totals.needsAttention}</p>
-          <p className="small soft">Underpaid or failed</p>
+        <div className="overview-chart">
+          <PayoutChart days={days} />
         </div>
       </section>
 
