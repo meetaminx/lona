@@ -1,3 +1,4 @@
+import { Coin } from "@/components/coin";
 import { Medallion } from "@/components/medallion";
 import { Qr } from "@/components/qr";
 import { SealFrame } from "@/components/seal-frame";
@@ -50,7 +51,7 @@ export function Features() {
           {SETTLEMENT_ASSETS.slice(0, 4).map((a, i) => (
             <div key={a.key} className={`net-opt ${i === 0 ? "is-on" : ""}`}>
               <span className="net-radio" />
-              <Medallion seed={`net:${a.chainName}`} size={24} tone={i === 0 ? "blue" : "ink"} />
+              <Coin seed={`net:${a.chainName}`} size={30} metal={i === 0 ? "blue" : "steel"} />
               <span className="small">
                 {a.symbol} on {a.chainName}
               </span>

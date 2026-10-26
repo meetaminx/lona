@@ -1,10 +1,10 @@
-import { Medallion } from "@/components/medallion";
+import { Coin } from "@/components/coin";
 
 /** The merchant's side: a payout landing in their wallet. */
 export function PayoutCard({ visible, amount, network }: { visible: boolean; amount: string; network: string }) {
   return (
     <div className={`notice-card payout-card ${visible ? "is-in" : ""}`} aria-hidden="true">
-      <Medallion seed={`net:${network}`} size={34} tone="blue" />
+      <Coin seed={`net:${network}`} size={40} metal="blue" />
       <div>
         <p className="nc-title">Payout received</p>
         <p className="nc-sub">Your wallet on {network}</p>

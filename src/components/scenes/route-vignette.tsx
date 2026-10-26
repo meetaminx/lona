@@ -1,4 +1,4 @@
-import { Medallion } from "@/components/medallion";
+import { Coin } from "@/components/coin";
 import { waveBand } from "@/lib/guilloche";
 
 const band = waveBand({ x0: 70, x1: 410, yCenter: 90, lines: 16, amplitude: 22, wavelength: 170, spread: 46 });
@@ -24,7 +24,7 @@ export function RouteVignette({ active = true }: { active?: boolean }) {
       </svg>
       <div className="rv-ends">
         <div>
-          <Medallion seed="net:Zcash" tone="amber" size={44} />
+          <Coin seed="net:Zcash" metal="amber" size={56} />
           <p className="small" style={{ fontWeight: 600 }}>3.216 ZEC in</p>
           <p className="micro soft">Customer&apos;s deposit</p>
         </div>
@@ -33,7 +33,7 @@ export function RouteVignette({ active = true }: { active?: boolean }) {
           <p className="micro soft">Market makers compete on the price</p>
         </div>
         <div>
-          <Medallion seed="net:Base" tone="blue" size={44} />
+          <Coin seed="net:Base" metal="blue" size={56} />
           <p className="small" style={{ fontWeight: 600 }}>128.00 USDC out</p>
           <p className="micro soft">Your wallet on Base</p>
         </div>

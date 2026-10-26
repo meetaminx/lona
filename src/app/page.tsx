@@ -1,5 +1,5 @@
+import { Coin } from "@/components/coin";
 import Link from "next/link";
-import { Medallion } from "@/components/medallion";
 import { SealFrame } from "@/components/seal-frame";
 import { SiteFooter, SiteHeader } from "@/components/site-chrome";
 import { CodeTabs } from "@/components/scenes/code-tabs";
@@ -69,12 +69,12 @@ export default async function Home() {
             <ul>
               {NETWORKS.map((n) => (
                 <li key={n}>
-                  <Medallion seed={`net:${n}`} size={28} tone="blue" />
+                  <Coin seed={`net:${n}`} size={40} metal="blue" />
                   <span>{n}</span>
                 </li>
               ))}
               <li className="networks-via">
-                <Medallion seed="net:NEAR Intents" size={28} />
+                <Coin seed="net:NEAR Intents" size={40} metal="steel" />
                 <span>Converted by NEAR Intents</span>
               </li>
             </ul>
