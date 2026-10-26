@@ -19,9 +19,14 @@ export async function sendMail(mail: Mail): Promise<MailResult> {
       body: JSON.stringify({ from, to: [mail.to], subject: mail.subject, html: mail.html, text: mail.text }),
       signal: AbortSignal.timeout(10_000),
     });
-    if (!res.ok) return { delivered: false, error: `Email provider responded ${res.status}` };
+    if (!res.ok) {
+      const detail = (await res.text().catch(() => "")).slice(0, 500);
+      console.error(`[mail:failed] status=${res.status} from="${from}" to=${mail.to} detail=${detail}`);
+      return { delivered: false, error: `Email provider responded ${res.status}` };
+    }
     return { delivered: true };
   } catch (err) {
+    console.error(`[mail:failed] to=${mail.to} error=${String(err)}`);
     return { delivered: false, error: String(err) };
   }
 }
