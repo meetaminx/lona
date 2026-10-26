@@ -16,6 +16,9 @@ export const IconWallet = () => (
 export const IconCode = () => (
   <svg {...base}><path d="M7 6l-4 4 4 4M13 6l4 4-4 4M11 4l-2 12" /></svg>
 );
+export const IconSettings = () => (
+  <svg {...base}><path d="M10 7.2a2.8 2.8 0 100 5.6 2.8 2.8 0 000-5.6zM10 2.5v2M10 15.5v2M2.5 10h2M15.5 10h2M4.7 4.7l1.4 1.4M13.9 13.9l1.4 1.4M4.7 15.3l1.4-1.4M13.9 6.1l1.4-1.4" /></svg>
+);
 export const IconCheck = () => (
   <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M2.5 6.2l2.3 2.3 4.7-5" /></svg>
 );

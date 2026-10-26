@@ -7,6 +7,7 @@ import {
   jsonb,
   index,
   uniqueIndex,
+  primaryKey,
 } from "drizzle-orm/pg-core";
 
 export const merchants = pgTable("merchants", {
@@ -14,8 +15,41 @@ export const merchants = pgTable("merchants", {
   email: text("email").notNull(),
   passwordHash: text("password_hash").notNull(),
   businessName: text("business_name").notNull(),
+  emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
+  supportEmail: text("support_email"),
+  defaultSuccessUrl: text("default_success_url"),
+  sendReceipts: boolean("send_receipts").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [uniqueIndex("merchants_email_idx").on(t.email)]);
+
+/** Single-use tokens for password reset and email verification. Only the hash is stored. */
+export const authTokens = pgTable("auth_tokens", {
+  id: text("id").primaryKey(),
+  merchantId: text("merchant_id").notNull().references(() => merchants.id, { onDelete: "cascade" }),
+  purpose: text("purpose").$type<"reset" | "verify">().notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  usedAt: timestamp("used_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [index("auth_tokens_merchant_idx").on(t.merchantId, t.purpose)]);
+
+/** Stored responses for Idempotency-Key requests, kept 24 hours. */
+export const idempotencyKeys = pgTable("idempotency_keys", {
+  merchantId: text("merchant_id").notNull().references(() => merchants.id, { onDelete: "cascade" }),
+  livemode: boolean("livemode").notNull(),
+  key: text("key").notNull(),
+  path: text("path").notNull(),
+  requestHash: text("request_hash").notNull(),
+  statusCode: integer("status_code"),
+  response: jsonb("response").$type<unknown>(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [primaryKey({ columns: [t.merchantId, t.livemode, t.key] })]);
+
+/** Fixed-window request counter per API key. */
+export const apiUsage = pgTable("api_usage", {
+  keyId: text("key_id").notNull(),
+  window: text("window").notNull(),
+  count: integer("count").notNull().default(0),
+}, (t) => [primaryKey({ columns: [t.keyId, t.window] })]);
 
 export const sessions = pgTable("sessions", {
   id: text("id").primaryKey(), // sha256 of the cookie token
@@ -87,6 +121,7 @@ export const invoices = pgTable("invoices", {
   description: text("description").notNull(),
   reference: text("reference"),
   customerEmail: text("customer_email"),
+  receiptSentAt: timestamp("receipt_sent_at", { withTimezone: true }),
   status: text("status").$type<InvoiceStatus>().notNull().default("open"),
   settlementAssetKey: text("settlement_asset_key").notNull(),
   payoutAddress: text("payout_address").notNull(),

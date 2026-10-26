@@ -15,13 +15,18 @@ Read `DESIGN.md` before changing any UI.
 - REST API with secret keys (`/api/v1/invoices`, `/api/v1/payment_links`)
 - Test mode simulator, since the swap network has no testnet
 - Landing page, API docs, privacy policy and terms
+- Accounts: email confirmation, password reset, password change; live mode needs a confirmed email and a payout wallet
+- Settings: business profile, support email, default return page, customer receipt emails
+- Webhook tooling: private-network guard on save and on every delivery, send test event, roll secret, retry now
+- API safety: `Idempotency-Key` on every POST, per-key rate limits with headers, list filters and cursor paging
+- Invoices: search, status filters and CSV export for accounting
 
 ## Run locally
 
 ```bash
 npm install
 npm run dev        # http://localhost:3000
-npm test           # engine tests: lifecycle, webhooks, signatures, address checks
+npm test           # payment lifecycle, webhooks, signatures, network guard, tokens, receipts, idempotency, rate limits
 ```
 
 No database setup is needed locally: an embedded Postgres (PGlite) is created in `.data/` and migrated on boot.
@@ -49,8 +54,9 @@ Code map: `src/lib/invoices.ts` (state machine), `src/lib/providers/` (1Click ad
 - **Zcash deposit addresses are transparent.** NEAR Intents documents Zcash support as transparent-only. A shielded wallet can pay it and the payer's wallet stays private, but the deposit amount is public. The landing page says so; keep it that way.
 - **Refunds go to transparent addresses.** The merchant's fallback refund address, or one the customer enters at checkout.
 - **Asset IDs** are resolved from 1Click's `/v0/tokens` at runtime, with known IDs as a fallback. Check the Solana USDC mapping against the live token list.
-- **Webhook URLs** are not yet checked against private network ranges. Add that before opening live sign-ups.
-- **Accounts:** no email verification or password reset yet.
+- **Email** needs `RESEND_API_KEY` and a verified sending domain in `MAIL_FROM`. Without it, confirmation, reset and receipt emails are only logged.
+- **Rate limits and idempotency** are stored in Postgres, which is fine at launch volume; move them to Redis if traffic grows.
+- **One conversion route.** Maya Protocol (which also supports shielded ZEC) can be added behind the same provider interface as a fallback.
 - **Legal pages** are plain-language drafts. Have a lawyer review them, and get advice on whether your jurisdiction treats this as a regulated payment service.
 
 ## Launch checklist
@@ -60,4 +66,5 @@ Code map: `src/lib/invoices.ts` (state machine), `src/lib/providers/` (1Click ad
 - [x] No "Made with" badges
 - [x] Privacy policy and terms pages (review with a lawyer)
 - [ ] `NEXT_PUBLIC_CONTACT_EMAIL` set to a real inbox
+- [ ] `RESEND_API_KEY` and `MAIL_FROM` set, sending domain verified
 - [ ] One real end-to-end payment completed

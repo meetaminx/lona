@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/db";
-import { amountSchema, readJson, withApiKey } from "@/lib/api";
+import { amountSchema, apiPost, withApiKey } from "@/lib/api";
 import { createPaymentLink, listPaymentLinks, serializeLink } from "@/lib/links";
 
 const createSchema = z.object({
@@ -11,15 +11,15 @@ const createSchema = z.object({
 });
 
 export async function POST(req: Request) {
-  return withApiKey(req, async (auth) => {
-    const body = createSchema.parse(await readJson(req));
+  return apiPost(req, "/v1/payment_links", async (auth, raw) => {
+    const body = createSchema.parse(raw);
     const d = await db();
     const link = await createPaymentLink(d, auth.merchantId, auth.livemode, {
       title: body.title,
       description: body.description,
       amountCents: body.amount,
     });
-    return NextResponse.json(serializeLink(link), { status: 201 });
+    return { status: 201, json: serializeLink(link) };
   });
 }
 

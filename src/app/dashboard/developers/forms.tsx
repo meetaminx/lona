@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { addEndpointAction, createKeyAction } from "@/app/actions/dashboard";
+import { addEndpointAction, createKeyAction, rollSecretAction, testEndpointAction } from "@/app/actions/dashboard";
 import { CopyButton } from "@/components/copy-button";
 
 function SecretBox({ message, secret }: { message: string; secret: string }) {
@@ -42,5 +42,27 @@ export function AddEndpointForm({ live }: { live: boolean }) {
         <button className="btn btn-primary" disabled={pending}>{pending ? "Adding" : "Add endpoint"}</button>
       </div>
     </form>
+  );
+}
+
+export function EndpointActions({ id }: { id: string }) {
+  const [test, testAction, testing] = useActionState(testEndpointAction, undefined);
+  const [roll, rollAction, rolling] = useActionState(rollSecretAction, undefined);
+  return (
+    <div className="ep-actions">
+      <div className="ep-buttons">
+        <form action={testAction}>
+          <input type="hidden" name="id" value={id} />
+          <button className="btn btn-secondary" style={{ height: 32 }} disabled={testing}>{testing ? "Sending" : "Send test event"}</button>
+        </form>
+        <form action={rollAction}>
+          <input type="hidden" name="id" value={id} />
+          <button className="btn btn-quiet" disabled={rolling}>{rolling ? "Rolling" : "Roll secret"}</button>
+        </form>
+      </div>
+      {test?.ok && <p className="small ok-text" role="status">{test.ok}</p>}
+      {test?.error && <p className="small error-text" role="alert">{test.error}</p>}
+      {roll?.secret && <SecretBox message={roll.ok ?? ""} secret={roll.secret} />}
+    </div>
   );
 }

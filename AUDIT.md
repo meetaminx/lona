@@ -61,4 +61,4 @@ No purple, no gradients as decoration, no pill buttons, no emoji, no fake metric
 
 Done: every P0 and P1 item above. Product-led hero scene with pause, Archivo type system, timed walkthrough, night observer section, live ZEC price (hidden when the network is unreachable), feature vignettes, network medallions, FAQ, sticky header, full footer with disclosure, code tabs, illustration family (seal, guilloche ring, microprint, medallions, bands, grid lines), motion system, seal-framed QR checkout with wallet hand-off, hold bar and receipt, two-pane checkout, payouts chart, seal thumbnails, invoice timeline, superscript amounts.
 
-Still open (P2): a shared code panel with copy buttons in the API docs, and a final polish pass on the dashboard rail.
+The two P2 items (docs code panels with copy buttons, dashboard rail polish) were completed in the following build, along with settings, account security, webhook tooling, API safety, invoice search and export, and customer receipts.

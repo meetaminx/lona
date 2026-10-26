@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { IconCode, IconInvoice, IconLink, IconOverview, IconWallet } from "@/components/icons";
+import { IconCode, IconInvoice, IconLink, IconOverview, IconSettings, IconWallet } from "@/components/icons";
 
 const ITEMS = [
   { href: "/dashboard", label: "Overview", icon: IconOverview, exact: true },
@@ -10,6 +10,7 @@ const ITEMS = [
   { href: "/dashboard/links", label: "Payment links", icon: IconLink },
   { href: "/dashboard/settlement", label: "Settlement", icon: IconWallet },
   { href: "/dashboard/developers", label: "Developers", icon: IconCode },
+  { href: "/dashboard/settings", label: "Settings", icon: IconSettings },
 ];
 
 export function DashNav() {

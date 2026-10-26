@@ -12,7 +12,8 @@ import { PayoutChart, type DayTotal } from "@/components/payout-chart";
 
 export const metadata = { title: "Overview" };
 
-export default async function Overview() {
+export default async function Overview({ searchParams }: { searchParams: Promise<{ notice?: string }> }) {
+  const { notice } = await searchParams;
   const m = await requireMerchant();
   const live = await isLivemode();
   const d = await db();
@@ -63,6 +64,8 @@ export default async function Overview() {
         </div>
         <Link href="/dashboard/invoices/new" className="btn btn-primary">Create invoice</Link>
       </div>
+
+      {notice === "password-reset" && <p className="notice notice-ok" role="status">Password changed. You are logged in on this device only.</p>}
 
       {remaining > 0 && (
         <section className="panel" aria-labelledby="setup-h">

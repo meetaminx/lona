@@ -22,7 +22,7 @@ export function LoginForm() {
         {pending ? "Logging in" : "Log in"}
       </button>
       <p className="small soft">
-        New to Lona? <Link href="/signup">Create an account</Link>.
+        New to Lona? <Link href="/signup">Create an account</Link>. <Link href="/forgot">Forgot your password?</Link>
       </p>
     </form>
   );

@@ -4,9 +4,13 @@ import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { merchants } from "@/db/schema";
-import { createMerchant, createSession, destroySession, setLivemode, verifyPassword } from "@/lib/auth";
+import { createMerchant, createSession, destroySession, hashPassword, setLivemode, verifyPassword } from "@/lib/auth";
+import { sessions } from "@/db/schema";
+import { sendResetEmail, sendVerifyEmail } from "@/lib/account-mail";
+import { canShowDevLinks } from "@/lib/mailer";
+import { consumeToken } from "@/lib/tokens";
 
-export type FormState = { error?: string; values?: Record<string, string> } | undefined;
+export type FormState = { error?: string; ok?: string; devLink?: string; values?: Record<string, string> } | undefined;
 
 export async function signupAction(_prev: FormState, form: FormData): Promise<FormState> {
   const businessName = String(form.get("businessName") ?? "").trim();
@@ -18,6 +22,7 @@ export async function signupAction(_prev: FormState, form: FormData): Promise<Fo
   if (password.length < 10) return { error: "Use a password of at least 10 characters.", values };
   const res = await createMerchant({ email, password, businessName });
   if ("error" in res) return { error: res.error, values };
+  await sendVerifyEmail(await db(), res.merchant);
   await createSession(res.merchant.id);
   await setLivemode(false);
   redirect("/dashboard");
@@ -38,4 +43,31 @@ export async function loginAction(_prev: FormState, form: FormData): Promise<For
 export async function logoutAction() {
   await destroySession();
   redirect("/");
+}
+
+export async function forgotAction(_prev: FormState, form: FormData): Promise<FormState> {
+  const email = String(form.get("email") ?? "").trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: "Enter the email you signed up with.", values: { email } };
+  const d = await db();
+  const [m] = await d.select().from(merchants).where(eq(merchants.email, email));
+  let devLink: string | undefined;
+  if (m) {
+    const sent = await sendResetEmail(d, m);
+    if (!sent.delivered && canShowDevLinks()) devLink = sent.link;
+  }
+  // Same answer whether or not the account exists, so the form cannot be used to find accounts.
+  return { ok: "If an account uses that email, a reset link is on its way. It works for 1 hour.", devLink };
+}
+
+export async function resetAction(_prev: FormState, form: FormData): Promise<FormState> {
+  const token = String(form.get("token") ?? "");
+  const password = String(form.get("password") ?? "");
+  if (password.length < 10) return { error: "Use a password of at least 10 characters." };
+  const d = await db();
+  const merchantId = await consumeToken(d, token, "reset");
+  if (!merchantId) return { error: "This reset link has expired or was already used. Ask for a new one." };
+  await d.update(merchants).set({ passwordHash: await hashPassword(password) }).where(eq(merchants.id, merchantId));
+  await d.delete(sessions).where(eq(sessions.merchantId, merchantId)); // sign out everywhere
+  await createSession(merchantId);
+  redirect("/dashboard?notice=password-reset");
 }

@@ -1,4 +1,5 @@
 process.env.DATABASE_URL = "pglite://memory";
+process.env.ALLOW_PRIVATE_WEBHOOKS = "1";
 
 import { test } from "node:test";
 import assert from "node:assert/strict";

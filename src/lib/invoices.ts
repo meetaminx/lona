@@ -1,6 +1,7 @@
 import { and, desc, eq, gt, inArray, lt, notInArray } from "drizzle-orm";
 import type { DB } from "@/db";
 import {
+  merchants,
   invoices,
   paymentAttempts,
   settlementSettings,
@@ -56,6 +57,7 @@ export async function createInvoice(d: DB, merchantId: string, livemode: boolean
     throw new InvoiceError("Set a payout wallet in Settlement before creating invoices.", 409, "settlement_not_configured");
   }
   const expiresIn = Math.min(Math.max(input.expiresInMinutes ?? 60 * 24, 15), 60 * 24 * 30);
+  const [merchant] = await d.select({ defaultSuccessUrl: merchants.defaultSuccessUrl }).from(merchants).where(eq(merchants.id, merchantId));
   const [inv] = await d
     .insert(invoices)
     .values({
@@ -66,7 +68,7 @@ export async function createInvoice(d: DB, merchantId: string, livemode: boolean
       description: input.description.trim().slice(0, 200),
       reference: input.reference?.trim().slice(0, 120) || null,
       customerEmail: input.customerEmail?.trim() || null,
-      successUrl: input.successUrl || null,
+      successUrl: input.successUrl || merchant?.defaultSuccessUrl || null,
       metadata: input.metadata ?? {},
       settlementAssetKey: settings.assetKey,
       payoutAddress: settings.payoutAddress,
@@ -285,6 +287,9 @@ async function transition(d: DB, inv: Invoice, to: InvoiceStatus, attempts?: Pay
     }
     // First attempt right after the response is sent; the scheduler retries failures.
     runAfterResponse(() => deliverMany(d, ids));
+  }
+  if (to === "paid_out" && updated.customerEmail) {
+    runAfterResponse(() => import("@/lib/receipts").then((r) => r.sendReceipt(d, updated.id)));
   }
   return updated;
 }

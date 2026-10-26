@@ -3,6 +3,7 @@ import { and, eq, lte, inArray, desc } from "drizzle-orm";
 import type { DB } from "@/db";
 import { webhookDeliveries, webhookEndpoints, webhookEvents } from "@/db/schema";
 import { newId, randomToken } from "@/lib/ids";
+import { checkWebhookUrl } from "@/lib/net-guard";
 
 export const EVENT_TYPES = [
   "invoice.payment_received",
@@ -88,6 +89,14 @@ export async function deliver(d: DB, deliveryId: string): Promise<void> {
     .where(eq(webhookDeliveries.id, deliveryId));
   if (!row || row.delivery.status !== "pending") return;
 
+  const blocked = await checkWebhookUrl(row.endpoint.url, row.endpoint.livemode);
+  if (blocked) {
+    await d
+      .update(webhookDeliveries)
+      .set({ status: "failed", attempts: row.delivery.attempts + 1, lastError: blocked, nextAttemptAt: null })
+      .where(eq(webhookDeliveries.id, deliveryId));
+    return;
+  }
   const body = JSON.stringify(row.event.payload);
   const timestamp = Math.floor(Date.now() / 1000);
   let code: number | null = null;
@@ -171,4 +180,38 @@ export async function recentDeliveries(d: DB, merchantId: string, livemode: bool
     .innerJoin(webhookEndpoints, eq(webhookEndpoints.id, webhookDeliveries.endpointId))
     .where(inArray(webhookDeliveries.eventId, events.map((e) => e.id)))
     .orderBy(desc(webhookDeliveries.createdAt));
+}
+
+/** Send a signed test event to one endpoint right now and report what happened. */
+export async function sendTestEvent(d: DB, endpointId: string): Promise<{ ok: boolean; message: string }> {
+  const [ep] = await d.select().from(webhookEndpoints).where(eq(webhookEndpoints.id, endpointId));
+  if (!ep) return { ok: false, message: "Endpoint not found." };
+  const eventId = newId("evt");
+  const payload = {
+    id: eventId,
+    type: "test.ping",
+    created: Math.floor(Date.now() / 1000),
+    livemode: ep.livemode,
+    data: { object: { message: "This is a test event from Lona. Respond with any 2xx status." } },
+  };
+  await d.insert(webhookEvents).values({ id: eventId, merchantId: ep.merchantId, livemode: ep.livemode, type: "test.ping", invoiceId: null, payload });
+  const [row] = await d
+    .insert(webhookDeliveries)
+    .values({ id: newId("dlv"), eventId, endpointId: ep.id, status: "pending", nextAttemptAt: new Date() })
+    .returning();
+  await deliver(d, row.id);
+  const [after] = await d.select().from(webhookDeliveries).where(eq(webhookDeliveries.id, row.id));
+  if (after.status === "succeeded") return { ok: true, message: `Delivered. Your server responded ${after.lastResponseCode}.` };
+  // A test should not be retried for a day.
+  await d.update(webhookDeliveries).set({ status: "failed", nextAttemptAt: null }).where(eq(webhookDeliveries.id, row.id));
+  return { ok: false, message: after.lastError ?? "Delivery failed." };
+}
+
+/** Put a delivery back in the queue and try it immediately. */
+export async function retryDelivery(d: DB, deliveryId: string): Promise<void> {
+  await d
+    .update(webhookDeliveries)
+    .set({ status: "pending", nextAttemptAt: new Date() })
+    .where(eq(webhookDeliveries.id, deliveryId));
+  await deliver(d, deliveryId);
 }

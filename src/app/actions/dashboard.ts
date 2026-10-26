@@ -2,25 +2,99 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { and, eq } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 import { db } from "@/db";
-import { apiKeys, invoices, paymentLinks, settlementSettings, webhookEndpoints } from "@/db/schema";
+import { apiKeys, invoices, merchants, paymentLinks, sessions, settlementSettings, webhookDeliveries, webhookEndpoints } from "@/db/schema";
+import { cookies } from "next/headers";
+import { hashPassword, verifyPassword } from "@/lib/auth";
+import { sendVerifyEmail } from "@/lib/account-mail";
+import { canShowDevLinks } from "@/lib/mailer";
+import { sha256 } from "@/lib/ids";
 import { checkPayoutAddress, checkZcashRefundAddress, getSettlementAsset } from "@/lib/assets";
 import { createApiKey, isLivemode, requireMerchant, setLivemode } from "@/lib/auth";
 import { newId } from "@/lib/ids";
 import { cancelInvoice, createInvoice, getInvoice, InvoiceError } from "@/lib/invoices";
 import { createPaymentLink } from "@/lib/links";
 import { parseAmountToCents } from "@/lib/money";
-import { newWebhookSecret } from "@/lib/webhooks";
+import { newWebhookSecret, retryDelivery, sendTestEvent } from "@/lib/webhooks";
+import { checkWebhookUrl } from "@/lib/net-guard";
 
 export type ActionState = { error?: string; ok?: string; secret?: string; values?: Record<string, string> } | undefined;
 
 const s = (form: FormData, key: string) => String(form.get(key) ?? "").trim();
 
 export async function setModeAction(form: FormData) {
-  await requireMerchant();
-  await setLivemode(s(form, "mode") === "live");
+  const m = await requireMerchant();
+  const wantLive = s(form, "mode") === "live";
+  if (wantLive) {
+    const ready = await liveReadiness(m.id, !!m.emailVerifiedAt);
+    if (!ready.ok) redirect("/dashboard/settings?golive=1#go-live");
+  }
+  await setLivemode(wantLive);
   revalidatePath("/dashboard", "layout");
+}
+
+/** Live payments need a confirmed email and a payout wallet. */
+export async function liveReadiness(merchantId: string, emailVerified: boolean) {
+  const d = await db();
+  const [settings] = await d.select().from(settlementSettings).where(eq(settlementSettings.merchantId, merchantId));
+  return { ok: emailVerified && !!settings, emailVerified, settlement: !!settings };
+}
+
+export async function saveProfileAction(_prev: ActionState, form: FormData): Promise<ActionState> {
+  const m = await requireMerchant();
+  const values = {
+    businessName: s(form, "businessName"),
+    supportEmail: s(form, "supportEmail"),
+    defaultSuccessUrl: s(form, "defaultSuccessUrl"),
+  };
+  if (!values.businessName) return { error: "Enter your business name. Customers see it at checkout.", values };
+  if (values.supportEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.supportEmail)) {
+    return { error: "That support email does not look right.", values };
+  }
+  if (values.defaultSuccessUrl) {
+    try {
+      const u = new URL(values.defaultSuccessUrl);
+      if (!["https:", "http:"].includes(u.protocol)) throw new Error();
+    } catch {
+      return { error: "The return page must be a full URL starting with https://", values };
+    }
+  }
+  const d = await db();
+  await d
+    .update(merchants)
+    .set({
+      businessName: values.businessName.slice(0, 80),
+      supportEmail: values.supportEmail || null,
+      defaultSuccessUrl: values.defaultSuccessUrl || null,
+      sendReceipts: form.get("sendReceipts") === "on",
+    })
+    .where(eq(merchants.id, m.id));
+  revalidatePath("/dashboard", "layout");
+  return { ok: "Saved.", values };
+}
+
+export async function changePasswordAction(_prev: ActionState, form: FormData): Promise<ActionState> {
+  const m = await requireMerchant();
+  const current = String(form.get("current") ?? "");
+  const next = String(form.get("next") ?? "");
+  if (!(await verifyPassword(current, m.passwordHash))) return { error: "Your current password is not right." };
+  if (next.length < 10) return { error: "Use a new password of at least 10 characters." };
+  const d = await db();
+  await d.update(merchants).set({ passwordHash: await hashPassword(next) }).where(eq(merchants.id, m.id));
+  // Keep this session, end every other one.
+  const jar = await cookies();
+  const token = jar.get("lona_session")?.value ?? "";
+  await d.delete(sessions).where(and(eq(sessions.merchantId, m.id), ne(sessions.id, sha256(token))));
+  return { ok: "Password changed. Other devices have been logged out." };
+}
+
+export async function resendVerifyAction(_prev: ActionState): Promise<ActionState> {
+  const m = await requireMerchant();
+  if (m.emailVerifiedAt) return { ok: "Your email is already confirmed." };
+  const sent = await sendVerifyEmail(await db(), m);
+  if (!sent.delivered && canShowDevLinks()) return { ok: "Email is not configured on this machine.", secret: sent.link };
+  return sent.delivered ? { ok: `Sent to ${m.email}.` } : { error: "We could not send the email. Try again in a few minutes." };
 }
 
 export async function saveSettlementAction(_prev: ActionState, form: FormData): Promise<ActionState> {
@@ -143,19 +217,51 @@ export async function addEndpointAction(_prev: ActionState, form: FormData): Pro
   const m = await requireMerchant();
   const live = await isLivemode();
   const url = s(form, "url");
-  let parsed: URL;
-  try {
-    parsed = new URL(url);
-  } catch {
-    return { error: "Enter the full URL, starting with https://", values: { url } };
-  }
-  if (live && parsed.protocol !== "https:") return { error: "Live webhooks must use https.", values: { url } };
-  if (!["https:", "http:"].includes(parsed.protocol)) return { error: "Use an http or https URL.", values: { url } };
+  const problem = await checkWebhookUrl(url, live);
+  if (problem) return { error: problem, values: { url } };
   const d = await db();
   const secret = newWebhookSecret();
   await d.insert(webhookEndpoints).values({ id: newId("whe"), merchantId: m.id, livemode: live, url, secret });
   revalidatePath("/dashboard/developers");
   return { ok: "Endpoint added. Use this signing secret to verify events.", secret };
+}
+
+async function ownEndpoint(merchantId: string, id: string) {
+  const d = await db();
+  const [ep] = await d.select().from(webhookEndpoints).where(and(eq(webhookEndpoints.id, id), eq(webhookEndpoints.merchantId, merchantId)));
+  return ep;
+}
+
+export async function testEndpointAction(_prev: ActionState, form: FormData): Promise<ActionState> {
+  const m = await requireMerchant();
+  const ep = await ownEndpoint(m.id, s(form, "id"));
+  if (!ep) return { error: "Endpoint not found." };
+  const res = await sendTestEvent(await db(), ep.id);
+  revalidatePath("/dashboard/developers");
+  return res.ok ? { ok: res.message } : { error: res.message };
+}
+
+export async function rollSecretAction(_prev: ActionState, form: FormData): Promise<ActionState> {
+  const m = await requireMerchant();
+  const ep = await ownEndpoint(m.id, s(form, "id"));
+  if (!ep) return { error: "Endpoint not found." };
+  const secret = newWebhookSecret();
+  await (await db()).update(webhookEndpoints).set({ secret }).where(eq(webhookEndpoints.id, ep.id));
+  revalidatePath("/dashboard/developers");
+  return { ok: "New signing secret. The old one stopped working just now, so update your server.", secret };
+}
+
+export async function retryDeliveryAction(form: FormData) {
+  const m = await requireMerchant();
+  const d = await db();
+  const id = s(form, "id");
+  const [row] = await d
+    .select({ id: webhookDeliveries.id })
+    .from(webhookDeliveries)
+    .innerJoin(webhookEndpoints, eq(webhookEndpoints.id, webhookDeliveries.endpointId))
+    .where(and(eq(webhookDeliveries.id, id), eq(webhookEndpoints.merchantId, m.id)));
+  if (row) await retryDelivery(d, row.id);
+  revalidatePath("/dashboard/developers");
 }
 
 export async function removeEndpointAction(form: FormData) {

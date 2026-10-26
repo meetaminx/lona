@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { jsonError } from "@/lib/api";
+import { jsonError, pruneApiState } from "@/lib/api";
 import { syncActive } from "@/lib/invoices";
 import { deliverDue } from "@/lib/webhooks";
 
@@ -16,5 +16,6 @@ export async function GET(req: Request) {
   const d = await db();
   const sync = await syncActive(d);
   const delivered = await deliverDue(d);
+  await pruneApiState();
   return NextResponse.json({ ...sync, webhooksAttempted: delivered });
 }

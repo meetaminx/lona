@@ -2,10 +2,10 @@ import Link from "next/link";
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { apiKeys, webhookEndpoints } from "@/db/schema";
-import { removeEndpointAction, revokeKeyAction } from "@/app/actions/dashboard";
+import { removeEndpointAction, retryDeliveryAction, revokeKeyAction } from "@/app/actions/dashboard";
 import { isLivemode, requireMerchant } from "@/lib/auth";
 import { recentDeliveries } from "@/lib/webhooks";
-import { AddEndpointForm, CreateKeyForm } from "./forms";
+import { AddEndpointForm, CreateKeyForm, EndpointActions } from "./forms";
 
 export const metadata = { title: "Developers" };
 
@@ -81,25 +81,21 @@ export default async function DevelopersPage() {
           <AddEndpointForm live={live} />
         </div>
         {endpoints.length > 0 && (
-          <div className="table-wrap">
-            <table className="table">
-              <thead><tr><th scope="col">URL</th><th scope="col">Signing secret</th><th scope="col" className="right"><span className="visually-hidden">Actions</span></th></tr></thead>
-              <tbody>
-                {endpoints.map((e) => (
-                  <tr key={e.id}>
-                    <td className="addr">{e.url}</td>
-                    <td className="addr soft">whsec_...{e.secret.slice(-4)}</td>
-                    <td className="right">
-                      <form action={removeEndpointAction}>
-                        <input type="hidden" name="id" value={e.id} />
-                        <button className="btn btn-quiet">Remove</button>
-                      </form>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <ul className="ep-list">
+            {endpoints.map((e) => (
+              <li key={e.id}>
+                <div className="ep-main">
+                  <p className="addr" style={{ fontWeight: 500 }}>{e.url}</p>
+                  <p className="small soft">Signing secret whsec_...{e.secret.slice(-4)}</p>
+                </div>
+                <EndpointActions id={e.id} />
+                <form action={removeEndpointAction}>
+                  <input type="hidden" name="id" value={e.id} />
+                  <button className="btn btn-quiet">Remove</button>
+                </form>
+              </li>
+            ))}
+          </ul>
         )}
       </section>
 
@@ -108,12 +104,12 @@ export default async function DevelopersPage() {
         {deliveries.length ? (
           <div className="table-wrap">
             <table className="table">
-              <thead><tr><th scope="col">Event</th><th scope="col">Invoice</th><th scope="col">Result</th><th scope="col">Time</th></tr></thead>
+              <thead><tr><th scope="col">Event</th><th scope="col">Invoice</th><th scope="col">Result</th><th scope="col">Time</th><th scope="col"><span className="visually-hidden">Actions</span></th></tr></thead>
               <tbody>
                 {deliveries.map((x) => (
                   <tr key={x.id}>
                     <td>{x.eventType}</td>
-                    <td className="addr">{x.invoiceId && <Link href={`/dashboard/invoices/${x.invoiceId}`}>{x.invoiceId}</Link>}</td>
+                    <td className="addr">{x.invoiceId ? <Link href={`/dashboard/invoices/${x.invoiceId}`}>{x.invoiceId}</Link> : <span className="soft">Test event</span>}</td>
                     <td>
                       <span className={`chip ${x.status === "succeeded" ? "chip-green" : x.status === "failed" ? "chip-red" : "chip-amber"}`}>
                         {x.status === "succeeded" ? `Delivered (${x.lastResponseCode})` : x.status === "failed" ? "Gave up" : x.attempts ? "Retrying" : "Sending"}
@@ -121,6 +117,14 @@ export default async function DevelopersPage() {
                       {x.lastError && x.status !== "succeeded" && <span className="small soft" style={{ display: "block", marginTop: 4 }}>{x.lastError}</span>}
                     </td>
                     <td className="num soft">{dt.format(x.createdAt)}</td>
+                    <td className="right">
+                      {x.status !== "succeeded" && (
+                        <form action={retryDeliveryAction}>
+                          <input type="hidden" name="id" value={x.id} />
+                          <button className="btn btn-quiet">Retry now</button>
+                        </form>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
