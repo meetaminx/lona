@@ -1083,6 +1083,10 @@
   .bento-wide {
     grid-column: auto;
   }
+  .bento-vig {
+    height: auto;
+    min-height: 220px;
+  }
   .vig-link {
     grid-template-columns: 1fr;
   }

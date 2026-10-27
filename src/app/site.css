@@ -27,7 +27,16 @@
 /* ---------- Prose pages (docs, legal) ---------- */
 .prose {
   max-width: 72ch;
+  min-width: 0;
   padding: 64px 0 96px;
+}
+.prose pre {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.prose p code,
+.prose li code {
+  overflow-wrap: anywhere;
 }
 .prose h1 {
   margin-bottom: 12px;
@@ -85,7 +94,7 @@
 }
 @media (max-width: 860px) {
   .docs-layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: 0;
   }
   .docs-toc {
