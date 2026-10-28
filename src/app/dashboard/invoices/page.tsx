@@ -2,6 +2,7 @@ import Link from "next/link";
 import { db } from "@/db";
 import { InvoiceTable } from "@/components/invoice-table";
 import { isLivemode, requireMerchant } from "@/lib/auth";
+import { syncMerchantActive } from "@/lib/invoices";
 import { FILTERS, queryInvoices } from "@/lib/invoice-query";
 
 export const metadata = { title: "Invoices" };
@@ -10,6 +11,7 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Pro
   const m = await requireMerchant();
   const live = await isLivemode();
   const { filter = "all", q = "" } = await searchParams;
+  await syncMerchantActive(await db(), m.id, live);
   const rows = await queryInvoices(await db(), m.id, live, { filter, q });
   const qs = (f: string) => `?${new URLSearchParams({ ...(f !== "all" ? { filter: f } : {}), ...(q ? { q } : {}) })}`;
   const exportHref = `/dashboard/invoices/export${qs(filter)}`;

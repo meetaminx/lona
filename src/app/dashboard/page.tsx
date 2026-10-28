@@ -6,6 +6,7 @@ import { setupState } from "@/app/actions/dashboard";
 import { IconCheck } from "@/components/icons";
 import { InvoiceTable } from "@/components/invoice-table";
 import { isLivemode, requireMerchant } from "@/lib/auth";
+import { syncMerchantActive } from "@/lib/invoices";
 import { formatAmount } from "@/lib/money";
 import { Amount } from "@/components/amount";
 import { PayoutChart, type DayTotal } from "@/components/payout-chart";
@@ -17,6 +18,7 @@ export default async function Overview({ searchParams }: { searchParams: Promise
   const m = await requireMerchant();
   const live = await isLivemode();
   const d = await db();
+  await syncMerchantActive(d, m.id, live);
   const scope = and(eq(invoices.merchantId, m.id), eq(invoices.livemode, live));
   const recent = await d.select().from(invoices).where(scope).orderBy(desc(invoices.createdAt)).limit(8);
   const [totals] = await d

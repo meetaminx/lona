@@ -317,6 +317,28 @@ export async function syncActive(d: DB): Promise<{ synced: number; expired: numb
   return { synced, expired: overdue.length };
 }
 
+/**
+ * Refresh one merchant's payments in flight, so their dashboard is current even between scheduled
+ * runs. Bounded: at most `limit` invoices, checked in parallel, each with a time budget.
+ */
+export async function syncMerchantActive(d: DB, merchantId: string, livemode: boolean, limit = 10): Promise<number> {
+  const rows = await d
+    .select()
+    .from(invoices)
+    .where(
+      and(
+        eq(invoices.merchantId, merchantId),
+        eq(invoices.livemode, livemode),
+        inArray(invoices.status, ["awaiting_payment", "payment_received", "converting"]),
+      ),
+    )
+    .orderBy(desc(invoices.updatedAt))
+    .limit(limit);
+  const budget = (p: Promise<unknown>) => Promise.race([p, new Promise((r) => setTimeout(r, 4000))]);
+  await Promise.all(rows.map((inv) => budget(syncInvoice(d, inv).catch(() => undefined))));
+  return rows.length;
+}
+
 export async function cancelInvoice(d: DB, inv: Invoice): Promise<Invoice> {
   if (inv.status !== "open" && inv.status !== "awaiting_payment") {
     throw new InvoiceError("Only invoices that have not received a payment can be canceled.", 409, "invoice_not_cancelable");

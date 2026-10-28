@@ -118,6 +118,41 @@ let session;
   check("Correct password logs in", await p.waitForURL(/\/dashboard/, { timeout: 10000 }).then(() => true, () => false));
   await ctx.close();
 }
+// Login lockout after repeated wrong passwords (uses its own account so the main one stays usable)
+{
+  const victim = `lock${stamp}@e2e.example`;
+  const { ctx, p } = await page();
+  await p.fill("#businessName", "Lock Co");
+  await p.fill("#email", victim);
+  await p.fill("#password", "correct-horse-1");
+  await p.click("button:has-text('Create account')");
+  await p.waitForURL(/\/dashboard/, { timeout: 15000 });
+  await ctx.clearCookies();
+  const msgs = [];
+  for (let i = 0; i < 6; i++) {
+    await p.goto(base + "/login");
+    await p.fill("#email", victim);
+    await p.fill("#password", `wrong-guess-${i}`);
+    await p.click("button:has-text('Log in')");
+    await p.waitForSelector(".notice[role=alert]", { timeout: 10000 });
+    msgs.push(await alertText(p));
+  }
+  check("Warns before the lockout", /2 more tries/.test(msgs[2]) && /1 more try/.test(msgs[3]), msgs[3]);
+  check("Locks sign-in after 5 wrong passwords", /too many attempts/i.test(msgs[5]), msgs[5]);
+  await p.goto(base + "/login");
+  await p.fill("#email", victim);
+  await p.fill("#password", "correct-horse-1");
+  await p.click("button:has-text('Log in')");
+  await p.waitForSelector(".notice[role=alert]", { timeout: 10000 }).catch(() => {});
+  check("Stays locked even with the right password", /too many attempts/i.test(await alertText(p)) && !p.url().includes("/dashboard"));
+  await p.goto(base + "/login");
+  await p.fill("#email", `nobody${stamp}@e2e.example`);
+  await p.fill("#password", "whatever-1234");
+  await p.click("button:has-text('Log in')");
+  await p.waitForSelector(".notice[role=alert]", { timeout: 10000 });
+  check("Other emails can still sign in", /do not match/i.test(await alertText(p)));
+  await ctx.close();
+}
 // Checkout: dollar value matches the ZEC amount
 {
   const p = await session.newPage();

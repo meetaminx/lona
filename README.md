@@ -81,3 +81,22 @@ Code map: `src/lib/invoices.ts` (state machine), `src/lib/providers/` (1Click ad
 - Test mode prices ZEC at the live price plus a simulated 0.5% cost. Set `SANDBOX_ZEC_USD` only to pin a fixed test price.
 - The homepage demo uses the same live price shown on the page. If the price cannot be fetched, the page says the amounts are examples.
 - Lona's fee is `LONA_FEE_BPS` (default 50, so 0.5%). It is added to live quotes only when `LONA_FEE_RECIPIENT` is set.
+
+## Scheduled job
+
+`/api/cron/tick` syncs payments in flight, expires old invoices, retries webhooks and prunes rate-limit
+state. It needs `Authorization: Bearer $CRON_SECRET`.
+
+- Vercel Cron runs it once a day (the most the Hobby plan allows).
+- `.github/workflows/scheduled-tick.yml` runs it every 30 minutes, which fits a private repo's free
+  Actions minutes. Add `CRON_SECRET` as a repository secret.
+- For webhooks within minutes, point a free external scheduler (cron-job.org) at the same URL every
+  5 minutes with the same header.
+- The dashboard and invoice list also refresh the merchant's own payments in flight when opened.
+
+## Sign-in protection
+
+Wrong passwords are counted per email and per IP in 15-minute windows (stored hashed). Defaults:
+5 per email, 30 per IP for sign-in; 3 reset emails per address and 10 reset requests per IP; 10 new
+accounts per IP. A correct password clears the email's count. Override with `AUTH_LOGIN_EMAIL_LIMIT`,
+`AUTH_LOGIN_IP_LIMIT`, `AUTH_FORGOT_EMAIL_LIMIT`, `AUTH_FORGOT_IP_LIMIT`, `AUTH_SIGNUP_IP_LIMIT`.

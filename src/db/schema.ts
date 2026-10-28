@@ -51,6 +51,14 @@ export const apiUsage = pgTable("api_usage", {
   count: integer("count").notNull().default(0),
 }, (t) => [primaryKey({ columns: [t.keyId, t.window] })]);
 
+/** Failed sign-ins and other auth requests per email or IP, in 15-minute windows. Used to slow down guessing. */
+export const authAttempts = pgTable("auth_attempts", {
+  scope: text("scope").notNull(), // e.g. login:email, login:ip, forgot:email, signup:ip
+  key: text("key").notNull(), // sha256 of the email or IP, never the raw value
+  window: integer("window").notNull(), // floor(epoch ms / 15 min)
+  count: integer("count").notNull().default(0),
+}, (t) => [primaryKey({ columns: [t.scope, t.key, t.window] })]);
+
 export const sessions = pgTable("sessions", {
   id: text("id").primaryKey(), // sha256 of the cookie token
   merchantId: text("merchant_id").notNull().references(() => merchants.id, { onDelete: "cascade" }),

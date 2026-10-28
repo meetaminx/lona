@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { merchants } from "@/db/schema";
@@ -9,6 +10,7 @@ import { sessions } from "@/db/schema";
 import { sendResetEmail, sendVerifyEmail } from "@/lib/account-mail";
 import { canShowDevLinks } from "@/lib/mailer";
 import { consumeToken } from "@/lib/tokens";
+import { RULES, checkLimit, clearAttempts, ipFrom, lockoutMessage, recordAttempt } from "@/lib/throttle";
 
 export type FormState =
   | { error?: string; ok?: string; devLink?: string; values?: Record<string, string>; fields?: Record<string, string> }
@@ -25,6 +27,12 @@ export async function signupAction(_prev: FormState, form: FormData): Promise<Fo
   else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) fields.email = "Enter a valid email address, like you@business.com.";
   if (password.length < 10) fields.password = "Use a password of at least 10 characters.";
   if (Object.keys(fields).length) return { error: "Check the highlighted fields.", fields, values };
+  const ip = ipFrom(await headers());
+  const ipLimit = await checkLimit(RULES.signupIp(), ip);
+  if (ipLimit.blocked) {
+    return { error: `Too many new accounts from this network. Try again in ${ipLimit.retryMinutes} minutes.`, values };
+  }
+  await recordAttempt(RULES.signupIp(), ip);
   const res = await createMerchant({ email, password, businessName });
   if ("error" in res && res.error) return { error: res.error, fields: { email: res.error }, values };
   if (!("merchant" in res) || !res.merchant) return { error: "Something went wrong. Try again.", values };
@@ -40,11 +48,21 @@ export async function loginAction(_prev: FormState, form: FormData): Promise<For
   if (!email || !password) {
     return { error: "Enter your email and password.", values: { email } };
   }
+  // Checked before the password, and the same for unknown emails, so guessing and probing both stop.
+  const ip = ipFrom(await headers());
+  const [byEmail, byIp] = await Promise.all([checkLimit(RULES.loginEmail(), email), checkLimit(RULES.loginIp(), ip)]);
+  if (byEmail.blocked || byIp.blocked) {
+    return { error: lockoutMessage(Math.max(byEmail.retryMinutes, byIp.retryMinutes)), values: { email } };
+  }
   const d = await db();
   const [m] = await d.select().from(merchants).where(eq(merchants.email, email));
   if (!m || !(await verifyPassword(password, m.passwordHash))) {
-    return { error: "That email and password do not match an account.", values: { email } };
+    await Promise.all([recordAttempt(RULES.loginEmail(), email), recordAttempt(RULES.loginIp(), ip)]);
+    const left = RULES.loginEmail().max - (byEmail.count + 1);
+    const warn = left > 0 && left <= 2 ? ` ${left} more ${left === 1 ? "try" : "tries"} before sign-in is paused for this email.` : "";
+    return { error: `That email and password do not match an account.${warn}`, values: { email } };
   }
+  await clearAttempts(RULES.loginEmail(), email);
   await createSession(m.id);
   redirect("/dashboard");
 }
@@ -57,6 +75,13 @@ export async function logoutAction() {
 export async function forgotAction(_prev: FormState, form: FormData): Promise<FormState> {
   const email = String(form.get("email") ?? "").trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: "Enter the email you signed up with.", values: { email } };
+  const ok = "If an account uses that email, a reset link is on its way. It works for 1 hour.";
+  const ip = ipFrom(await headers());
+  const [byEmail, byIp] = await Promise.all([checkLimit(RULES.forgotEmail(), email), checkLimit(RULES.forgotIp(), ip)]);
+  if (byIp.blocked) return { error: `Too many reset requests from this network. Try again in ${byIp.retryMinutes} minutes.`, values: { email } };
+  await Promise.all([recordAttempt(RULES.forgotEmail(), email), recordAttempt(RULES.forgotIp(), ip)]);
+  // Over the per-email limit: answer the same way but send nothing, so inboxes cannot be flooded.
+  if (byEmail.blocked) return { ok };
   const d = await db();
   const [m] = await d.select().from(merchants).where(eq(merchants.email, email));
   let devLink: string | undefined;
@@ -65,7 +90,7 @@ export async function forgotAction(_prev: FormState, form: FormData): Promise<Fo
     if (!sent.delivered && canShowDevLinks()) devLink = sent.link;
   }
   // Same answer whether or not the account exists, so the form cannot be used to find accounts.
-  return { ok: "If an account uses that email, a reset link is on its way. It works for 1 hour.", devLink };
+  return { ok, devLink };
 }
 
 export async function resetAction(_prev: FormState, form: FormData): Promise<FormState> {
