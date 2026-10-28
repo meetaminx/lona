@@ -10,10 +10,15 @@ import type { PublicInvoice } from "@/lib/public-invoice";
 const POLL_STATUSES = new Set(["awaiting_payment", "payment_received", "converting", "underpaid"]);
 const QUOTE_MS = 20 * 60_000;
 
-function useCountdown(until: string | undefined) {
-  const [now, setNow] = useState(() => Date.now());
+/**
+ * The first render uses the server's clock (`renderedAt`) so server and browser produce the same
+ * text and hydration matches; the live clock takes over once the page is interactive.
+ */
+function useCountdown(until: string | undefined, renderedAt: number) {
+  const [now, setNow] = useState(renderedAt);
   useEffect(() => {
     if (!until) return;
+    setNow(Date.now());
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
   }, [until]);
@@ -31,7 +36,7 @@ async function post(url: string, body: unknown) {
   return json as PublicInvoice;
 }
 
-export function Checkout({ initial }: { initial: PublicInvoice }) {
+export function Checkout({ initial, renderedAt }: { initial: PublicInvoice; renderedAt: number }) {
   const [inv, setInv] = useState(initial);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,7 +53,7 @@ export function Checkout({ initial }: { initial: PublicInvoice }) {
     return () => clearInterval(t);
   }, [inv.status, refresh]);
 
-  const countdown = useCountdown(inv.status === "awaiting_payment" ? inv.payment?.quoteExpiresAt : undefined);
+  const countdown = useCountdown(inv.status === "awaiting_payment" ? inv.payment?.quoteExpiresAt : undefined, renderedAt);
   const expiredNow = countdown?.ms === 0;
   useEffect(() => {
     if (expiredNow) void refresh();

@@ -9,6 +9,12 @@ export function NewInvoiceForm({ payoutLabel }: { payoutLabel: string | null }) 
   const v = state?.values ?? {};
   return (
     <form action={action} className="form-grid" noValidate>
+      {!payoutLabel && (
+        <p className="notice notice-error" role="alert">
+          Set your payout wallet before creating invoices, so Lona knows where to send the money.{" "}
+          <Link href="/dashboard/settlement">Set payout wallet</Link>
+        </p>
+      )}
       {state?.error && (
         <p className="notice notice-error" role="alert">
           {state.error}{" "}
@@ -51,7 +57,7 @@ export function NewInvoiceForm({ payoutLabel }: { payoutLabel: string | null }) 
         {payoutLabel ? `Pays out as ${payoutLabel}.` : "No payout wallet set yet."} The customer pays the equivalent in ZEC.
       </p>
       <div>
-        <button className="btn btn-primary" disabled={pending}>{pending ? "Creating invoice" : "Create invoice"}</button>
+        <button className="btn btn-primary" disabled={pending || !payoutLabel}>{pending ? "Creating invoice" : "Create invoice"}</button>
       </div>
     </form>
   );

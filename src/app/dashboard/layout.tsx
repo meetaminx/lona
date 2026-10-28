@@ -45,7 +45,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             Test mode. Payments are simulated and no funds move. Switch to Live once your email is confirmed and your payout wallet is set.
           </div>
         )}
-        <div className="main">{children}</div>
+        <main className="main">{children}</main>
       </div>
     </div>
   );

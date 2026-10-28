@@ -29,6 +29,8 @@ npm run dev        # http://localhost:3000
 npm test           # payment lifecycle, webhooks, signatures, network guard, tokens, receipts, idempotency, rate limits,
                    # ZEC/USD conversion and rounding, quote guard, duplicate sign-ups
 npm run test:e2e   # browser checks for signup, login, checkout amounts and the homepage demo
+npm run test:full  # every merchant feature, the REST API and signed webhooks (start the server with
+                   # ALLOW_PRIVATE_WEBHOOKS=1 CRON_SECRET=e2e-cron SANDBOX_ZEC_USD=1300; set SERVER_LOG to its log)
                    # (needs a running build at BASE_URL and Playwright with Chromium)
 ```
 

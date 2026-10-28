@@ -20,5 +20,5 @@ export default async function PayPage({ params }: { params: Promise<{ id: string
   if (!found) notFound();
   const inv = await syncInvoice(d, found);
   const data = await publicInvoice(d, inv, primaryAttempt(await attemptsFor(d, inv.id)));
-  return <Checkout initial={data} />;
+  return <Checkout initial={data} renderedAt={Date.now()} />;
 }
