@@ -1,5 +1,6 @@
 process.env.DATABASE_URL = "pglite://memory";
 process.env.ALLOW_PRIVATE_WEBHOOKS = "1";
+process.env.SANDBOX_ZEC_USD = "1300";
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -71,8 +72,8 @@ test("invoice lifecycle in test mode with signed webhooks", async () => {
   assert.equal(started.status, "awaiting_payment");
   assert.match(attempt.depositAddress, /^t1/);
   assert.equal(attempt.amountOutBase, "49000000");
-  // 49 USD at the 40 USD test price plus 0.5% spread
-  assert.equal(attempt.amountInFormatted, "1.231125");
+  // 49 USD at a pinned 1300 USD test price plus the 0.5% simulated cost, rounded up to the next base unit
+  assert.equal(attempt.amountInFormatted, "0.03788077");
 
   // Reuses the live quote
   const again = await startPayment(d, inv.id);

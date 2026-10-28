@@ -1,5 +1,7 @@
 /** What someone watching each blockchain can see about one Lona payment. Drawn as explorer rows. */
-export function Observer() {
+import type { DemoQuote } from "@/lib/pricing";
+
+export function Observer({ demo }: { demo: DemoQuote }) {
   return (
     <div className="obs">
       <div className="obs-col">
@@ -22,7 +24,7 @@ export function Observer() {
         </div>
         <div className="obs-panel">
           <Row k="Address" v={<span className="addr">t1Tj9c...MEcmzoB</span>} />
-          <Row k="Received" v="3.216 ZEC" visible />
+          <Row k="Received" v={`${demo.zec} ZEC`} visible />
           <Row k="Time" v="12:04:02 UTC" visible />
           <Row k="Sender" v={<span className="obs-shield">Shielded</span>} />
         </div>
@@ -35,7 +37,7 @@ export function Observer() {
         </div>
         <div className="obs-panel">
           <Row k="To" v={<span className="addr">0x4b4b...4b4b</span>} visible />
-          <Row k="Amount" v="128.00 USDC" visible />
+          <Row k="Amount" v={`${demo.usd} USDC`} visible />
           <Row k="From" v="Swap network" visible />
           <Row k="Linked to deposit" v={<span className="obs-shield">Not publicly</span>} />
         </div>

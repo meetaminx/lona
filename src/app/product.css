@@ -167,6 +167,10 @@
   line-height: 1.1;
   letter-spacing: -0.015em;
 }
+.pay-usd {
+  margin-top: 4px;
+  max-width: 34ch;
+}
 .pay-zec span {
   font-size: 0.55em;
   color: var(--ink-soft);

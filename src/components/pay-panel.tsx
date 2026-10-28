@@ -8,6 +8,7 @@ import { SealFrame } from "./seal-frame";
 
 export type PayPanelPayment = {
   zecAmount: string;
+  zecUsd?: string | null;
   depositAddress: string;
   depositTxs?: { hash: string; explorerUrl?: string }[];
   payoutTxs?: { hash: string; explorerUrl?: string }[];
@@ -126,6 +127,11 @@ export function PayPanel({
               <p className="pay-zec">
                 {payment.zecAmount} <span>ZEC</span>
               </p>
+              {payment.zecUsd ? (
+                <p className="micro soft pay-usd">
+                  About ${payment.zecUsd} at the quoted rate. Covers the ${amount} invoice plus conversion and fees.
+                </p>
+              ) : null}
             </div>
             <CopyButton value={payment.zecAmount} label="Copy amount" />
           </div>

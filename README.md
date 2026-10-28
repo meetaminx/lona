@@ -26,7 +26,10 @@ Read `DESIGN.md` before changing any UI.
 ```bash
 npm install
 npm run dev        # http://localhost:3000
-npm test           # payment lifecycle, webhooks, signatures, network guard, tokens, receipts, idempotency, rate limits
+npm test           # payment lifecycle, webhooks, signatures, network guard, tokens, receipts, idempotency, rate limits,
+                   # ZEC/USD conversion and rounding, quote guard, duplicate sign-ups
+npm run test:e2e   # browser checks for signup, login, checkout amounts and the homepage demo
+                   # (needs a running build at BASE_URL and Playwright with Chromium)
 ```
 
 No database setup is needed locally: an embedded Postgres (PGlite) is created in `.data/` and migrated on boot.
@@ -68,3 +71,11 @@ Code map: `src/lib/invoices.ts` (state machine), `src/lib/providers/` (1Click ad
 - [ ] `NEXT_PUBLIC_CONTACT_EMAIL` set to a real inbox
 - [ ] `RESEND_API_KEY` and `MAIL_FROM` set, sending domain verified
 - [ ] One real end-to-end payment completed
+
+## Amounts and prices
+
+- Live payments: the ZEC amount is NEAR Intents' quote for the exact invoice amount, made on the server. Lona rejects any quote that would pay out less than the invoice.
+- Checkout shows the dollar value of the quoted ZEC, using the swap network's own figure when it gives one.
+- Test mode prices ZEC at the live price plus a simulated 0.5% cost. Set `SANDBOX_ZEC_USD` only to pin a fixed test price.
+- The homepage demo uses the same live price shown on the page. If the price cannot be fetched, the page says the amounts are examples.
+- Lona's fee is `LONA_FEE_BPS` (default 50, so 0.5%). It is added to live quotes only when `LONA_FEE_RECIPIENT` is set.

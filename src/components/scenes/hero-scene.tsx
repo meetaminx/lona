@@ -5,12 +5,11 @@ import type { InvoiceStatus } from "@/db/schema";
 import { PayPanel } from "@/components/pay-panel";
 import { PayoutCard } from "./notice-cards";
 import { WalletPhone, type WalletState } from "./wallet-phone";
+import type { DemoQuote } from "@/lib/pricing";
 
 const DEMO = {
   id: "inv_demo_hero_scene_01",
   merchant: "Kiln Coffee",
-  amount: "128.00",
-  zec: "3.216",
   address: "t1Tj9cSiNQJbCmuFVPqkQhuvT2hkMEcmzoB",
 };
 
@@ -28,7 +27,7 @@ const TIMELINE: Frame[] = [
 const LOOP_MS = 13000;
 const FINAL = TIMELINE[TIMELINE.length - 1];
 
-export function HeroScene() {
+export function HeroScene({ demo }: { demo: DemoQuote }) {
   const [t, setT] = useState(0);
   const [playing, setPlaying] = useState(true);
   const [reduced, setReduced] = useState(false);
@@ -82,7 +81,7 @@ export function HeroScene() {
         <div className="hs-panel">
           <div className="hs-panel-top">
             <span className="small" style={{ fontWeight: 600 }}>{DEMO.merchant}</span>
-            <span className="small soft">Order 1042, {DEMO.amount} USD</span>
+            <span className="small soft">Order 1042, {demo.usd} USD</span>
           </div>
           <PayPanel
             key={reduced ? "static" : Math.floor(t / LOOP_MS)}
@@ -90,17 +89,17 @@ export function HeroScene() {
             status={frame.status}
             merchantName={DEMO.merchant}
             settleSymbol="USDC"
-            amount={DEMO.amount}
-            payment={{ zecAmount: DEMO.zec, depositAddress: DEMO.address }}
+            amount={demo.usd}
+            payment={{ zecAmount: demo.zec, zecUsd: demo.zecUsd, depositAddress: DEMO.address }}
             timer={timer}
             frameSize={236}
           />
         </div>
         <div className="hs-phone">
-          <WalletPhone state={frame.wallet} amount={DEMO.zec} address={DEMO.address} />
+          <WalletPhone state={frame.wallet} amount={demo.zec} address={DEMO.address} />
         </div>
         <div className="hs-payout">
-          <PayoutCard visible={frame.payout} amount={DEMO.amount} network="Base" />
+          <PayoutCard visible={frame.payout} amount={demo.usd} network="Base" />
         </div>
       </div>
       {!reduced && (

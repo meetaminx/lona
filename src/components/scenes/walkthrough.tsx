@@ -5,6 +5,7 @@ import { InvoiceComposer } from "./invoice-composer";
 import { PayoutCard, WebhookCard } from "./notice-cards";
 import { RouteVignette } from "./route-vignette";
 import { WalletPhone } from "./wallet-phone";
+import type { DemoQuote } from "@/lib/pricing";
 
 const STEPS = [
   {
@@ -26,7 +27,7 @@ const STEPS = [
 ];
 const STEP_MS = 5200;
 
-export function Walkthrough() {
+export function Walkthrough({ demo }: { demo: DemoQuote }) {
   const [active, setActive] = useState(0);
   const [playing, setPlaying] = useState(true);
   const [sub, setSub] = useState(false);
@@ -71,16 +72,16 @@ export function Walkthrough() {
       </div>
       <div className="walk-stage" aria-live="off">
         <div key={active} className="walk-scene">
-          {active === 0 && <InvoiceComposer created={sub} />}
+          {active === 0 && <InvoiceComposer created={sub} usd={demo.usd} />}
           {active === 1 && (
             <div className="walk-phone">
-              <WalletPhone state={sub ? "sent" : "review"} amount="3.216" address="t1Tj9cSiNQJbCmuFVPqkQhuvT2hkMEcmzoB" />
+              <WalletPhone state={sub ? "sent" : "review"} amount={demo.zec} address="t1Tj9cSiNQJbCmuFVPqkQhuvT2hkMEcmzoB" />
             </div>
           )}
-          {active === 2 && <RouteVignette />}
+          {active === 2 && <RouteVignette zec={demo.zec} usd={demo.usd} />}
           {active === 3 && (
             <div className="walk-stack">
-              <PayoutCard visible amount="128.00" network="Base" />
+              <PayoutCard visible amount={demo.usd} network="Base" />
               <WebhookCard
                 lines={[
                   { t: "12:04:09", event: "invoice.payment_received", code: "200", on: true },

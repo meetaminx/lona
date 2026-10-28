@@ -2,11 +2,13 @@ import { randomBytes } from "node:crypto";
 import type { PaymentAttempt, ProviderStatus } from "@/db/schema";
 import { ZEC } from "@/lib/assets";
 import { formatBaseUnits } from "@/lib/money";
+import { testModeZecPrice, zecBaseForUsd } from "@/lib/pricing";
 import type { QuoteRequest, QuoteResult, StatusResult, SwapProvider } from "./types";
 
 /**
  * Test-mode provider. The swap network has no testnet, so test mode simulates the full
- * lifecycle without moving funds. Quotes use a fixed test price, not a market price.
+ * lifecycle without moving funds. Quotes use the live ZEC price (or SANDBOX_ZEC_USD when set)
+ * plus a simulated 0.5% conversion cost, so test amounts look like real ones.
  */
 
 export type SandboxOutcome = "paid_out" | "underpaid" | "refunded" | "failed";
@@ -26,17 +28,17 @@ function fakeHash(length = 64): string {
   return randomBytes(length / 2).toString("hex");
 }
 
-export const SANDBOX_ZEC_USD = Number(process.env.SANDBOX_ZEC_USD ?? "40");
+/** Simulated conversion cost added to test quotes, in basis points. */
+export const SANDBOX_COST_BPS = 50;
 
 export class SandboxProvider implements SwapProvider {
   readonly name = "sandbox";
 
   async quote(req: QuoteRequest): Promise<QuoteResult> {
-    // USD value of output, plus a 0.5% simulated network spread, priced at the test rate.
-    const cents = BigInt(req.amountOutBase) / 10n ** BigInt(req.settlement.decimals - 2);
-    const priceCents = BigInt(Math.round(SANDBOX_ZEC_USD * 100));
-    const zecBase = (cents * 10n ** BigInt(ZEC.decimals) * 1005n) / (priceCents * 1000n);
-    const amountInBase = zecBase.toString();
+    // USD value of the output, plus a simulated conversion cost, at the current test price.
+    const cents = Number(BigInt(req.amountOutBase) / 10n ** BigInt(req.settlement.decimals - 2));
+    const price = await testModeZecPrice();
+    const amountInBase = zecBaseForUsd(cents, price.usd, SANDBOX_COST_BPS).toString();
     return {
       depositAddress: fakeTransparentAddress(),
       depositMemo: null,
@@ -44,7 +46,7 @@ export class SandboxProvider implements SwapProvider {
       amountInFormatted: formatBaseUnits(amountInBase, ZEC.decimals),
       amountOutBase: req.amountOutBase,
       deadline: req.deadline,
-      raw: { sandbox: true, priceUsd: SANDBOX_ZEC_USD },
+      raw: { sandbox: true, priceUsd: price.usd, priceSource: price.source },
     };
   }
 

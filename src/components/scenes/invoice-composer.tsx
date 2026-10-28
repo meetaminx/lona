@@ -1,7 +1,7 @@
 import { CopyButton } from "@/components/copy-button";
 
 /** The merchant creating an invoice, drawn as the real dashboard form. */
-export function InvoiceComposer({ created }: { created: boolean }) {
+export function InvoiceComposer({ created, usd }: { created: boolean; usd: string }) {
   return (
     <div className="mini-app" aria-hidden="true">
       <div className="mini-bar">
@@ -13,7 +13,7 @@ export function InvoiceComposer({ created }: { created: boolean }) {
       <div className="mini-body">
         <div className="mini-field">
           <label>Amount in US dollars</label>
-          <div className="mini-input num">128.00</div>
+          <div className="mini-input num">{usd}</div>
         </div>
         <div className="mini-field">
           <label>Description</label>

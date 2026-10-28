@@ -1,5 +1,6 @@
 process.env.DATABASE_URL = "pglite://memory";
 process.env.API_RATE_PER_MIN = "5";
+process.env.SANDBOX_ZEC_USD = "1300";
 
 import { test } from "node:test";
 import assert from "node:assert/strict";

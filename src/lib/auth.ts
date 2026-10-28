@@ -115,9 +115,18 @@ export async function createMerchant(input: { email: string; password: string; b
   const email = input.email.trim().toLowerCase();
   const [existing] = await d.select({ id: merchants.id }).from(merchants).where(eq(merchants.email, email));
   if (existing) return { error: "An account with that email already exists. Log in instead." } as const;
-  const [m] = await d
-    .insert(merchants)
-    .values({ id: newId("mer"), email, passwordHash: await hashPassword(input.password), businessName: input.businessName.trim() })
-    .returning();
-  return { merchant: m } as const;
+  try {
+    const [m] = await d
+      .insert(merchants)
+      .values({ id: newId("mer"), email, passwordHash: await hashPassword(input.password), businessName: input.businessName.trim() })
+      .returning();
+    return { merchant: m } as const;
+  } catch (err) {
+    // Two sign-ups for the same email at once: the unique index rejects the second.
+    const e = err as { code?: string; message?: string; cause?: { code?: string } };
+    if (e.code === "23505" || e.cause?.code === "23505" || /merchants_email_idx|unique/i.test(e.message ?? "")) {
+      return { error: "An account with that email already exists. Log in instead." } as const;
+    }
+    throw err;
+  }
 }

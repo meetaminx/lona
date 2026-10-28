@@ -2,6 +2,19 @@ import type { PaymentAttempt, ProviderStatus, TxRef } from "@/db/schema";
 import { ZEC, type SettlementAsset } from "@/lib/assets";
 import { formatBaseUnits } from "@/lib/money";
 import { ProviderError, type QuoteRequest, type QuoteResult, type StatusResult, type SwapProvider } from "./types";
+import { feeBps, feeRecipient } from "@/lib/fees";
+
+let warnedNoFeeRecipient = false;
+
+/** A quote must pay out at least the invoice amount and ask for a positive ZEC amount. */
+export function assertQuoteCovers(requestedOut: string, amountIn: string, amountOut: unknown, raw?: unknown) {
+  if (!/^\d+$/.test(amountIn) || BigInt(amountIn) <= 0n) {
+    throw new ProviderError("The swap network returned an invalid ZEC amount.", true, raw);
+  }
+  if (typeof amountOut === "string" && /^\d+$/.test(amountOut) && BigInt(amountOut) < BigInt(requestedOut)) {
+    throw new ProviderError("The swap network quoted less than the invoice amount. Try again in a moment.", true, raw);
+  }
+}
 
 /**
  * NEAR Intents 1Click API.
@@ -98,8 +111,12 @@ export class NearIntentsProvider implements SwapProvider {
 
   async quote(req: QuoteRequest): Promise<QuoteResult> {
     const ids = await this.resolveAssetIds(req.settlement);
-    const appFeeBps = Number(process.env.LONA_FEE_BPS ?? "0");
-    const feeRecipient = process.env.LONA_FEE_RECIPIENT;
+    const appFeeBps = feeBps();
+    const recipient = feeRecipient();
+    if (appFeeBps > 0 && !recipient && !warnedNoFeeRecipient) {
+      warnedNoFeeRecipient = true;
+      console.warn("[lona] LONA_FEE_RECIPIENT is not set, so live quotes carry no Lona fee.");
+    }
 
     const body: Record<string, unknown> = {
       dry: false,
@@ -117,7 +134,7 @@ export class NearIntentsProvider implements SwapProvider {
       referral: "lona",
       confidentiality: process.env.ONECLICK_CONFIDENTIALITY ?? "basic",
     };
-    if (appFeeBps > 0 && feeRecipient) body.appFees = [{ recipient: feeRecipient, fee: appFeeBps }];
+    if (appFeeBps > 0 && recipient) body.appFees = [{ recipient, fee: appFeeBps }];
 
     const res = await this.request<{ quote?: Record<string, unknown> } & Record<string, unknown>>("/v0/quote", {
       method: "POST",
@@ -129,6 +146,7 @@ export class NearIntentsProvider implements SwapProvider {
     if (!depositAddress || !amountIn) {
       throw new ProviderError("The swap network returned a quote without a deposit address.", true, res);
     }
+    assertQuoteCovers(req.amountOutBase, amountIn, q.amountOut, res);
     return {
       depositAddress,
       depositMemo: typeof q.depositMemo === "string" ? q.depositMemo : null,

@@ -4,7 +4,7 @@ import { waveBand } from "@/lib/guilloche";
 const band = waveBand({ x0: 70, x1: 410, yCenter: 90, lines: 16, amplitude: 22, wavelength: 170, spread: 46 });
 
 /** ZEC enters the swap network (the band), the link between deposit and payout is not public, USDC leaves. */
-export function RouteVignette({ active = true }: { active?: boolean }) {
+export function RouteVignette({ active = true, zec, usd }: { active?: boolean; zec: string; usd: string }) {
   return (
     <div className={`route-vig ${active ? "is-active" : ""}`} aria-hidden="true">
       <svg viewBox="0 0 480 180" className="rv-svg">
@@ -25,7 +25,7 @@ export function RouteVignette({ active = true }: { active?: boolean }) {
       <div className="rv-ends">
         <div>
           <Coin seed="net:Zcash" metal="amber" size={56} />
-          <p className="small" style={{ fontWeight: 600 }}>3.216 ZEC in</p>
+          <p className="small" style={{ fontWeight: 600 }}>{zec} ZEC in</p>
           <p className="micro soft">Customer&apos;s deposit</p>
         </div>
         <div className="rv-mid">
@@ -34,7 +34,7 @@ export function RouteVignette({ active = true }: { active?: boolean }) {
         </div>
         <div>
           <Coin seed="net:Base" metal="blue" size={56} />
-          <p className="small" style={{ fontWeight: 600 }}>128.00 USDC out</p>
+          <p className="small" style={{ fontWeight: 600 }}>{usd} USDC out</p>
           <p className="micro soft">Your wallet on Base</p>
         </div>
       </div>

@@ -11,6 +11,7 @@ import { Walkthrough } from "@/components/scenes/walkthrough";
 import { currentMerchant } from "@/lib/auth";
 import { rosette } from "@/lib/guilloche";
 import { liveZecPrice } from "@/lib/price";
+import { demoQuote } from "@/lib/pricing";
 import { SITE } from "@/lib/site";
 
 const ghost = [
@@ -22,6 +23,7 @@ const NETWORKS = ["Base", "Arbitrum", "Ethereum", "Solana"];
 
 export default async function Home() {
   const [merchant, price] = await Promise.all([currentMerchant(), liveZecPrice()]);
+  const demo = demoQuote(price);
   const priceTime = price
     ? new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" }).format(price.at)
     : null;
@@ -42,9 +44,10 @@ export default async function Home() {
               {price && (
                 <p className="live-price">
                   <span className="live-dot" aria-hidden="true" />
-                  ZEC is ${price.usd.toFixed(2)} on NEAR Intents at {priceTime} UTC
+                  ZEC is ${price.usd.toFixed(2)} on NEAR Intents at {priceTime} UTC. The demo uses this price.
                 </p>
               )}
+              {!price && <p className="live-price">Demo amounts are examples. Checkout always uses a live quote.</p>}
               <h1 className="display">Accept shielded Zcash. Settle in USDC.</h1>
               <p className="lede">
                 Checkout for merchants whose customers want privacy. They pay from a shielded Zcash wallet. You receive the
@@ -59,7 +62,7 @@ export default async function Home() {
                 holds your funds.
               </p>
             </div>
-            <HeroScene />
+            <HeroScene demo={demo} />
           </div>
         </section>
 
@@ -87,7 +90,7 @@ export default async function Home() {
               <h2 className="h1">From invoice to payout in four steps</h2>
               <p>Your customer never touches a bridge, and you never touch ZEC.</p>
             </div>
-            <Walkthrough />
+            <Walkthrough demo={demo} />
           </div>
         </section>
 
@@ -101,7 +104,7 @@ export default async function Home() {
                 Lona payment, so you can tell your customers the truth.
               </p>
             </div>
-            <Observer />
+            <Observer demo={demo} />
           </div>
         </section>
 

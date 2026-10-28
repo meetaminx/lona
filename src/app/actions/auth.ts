@@ -10,18 +10,24 @@ import { sendResetEmail, sendVerifyEmail } from "@/lib/account-mail";
 import { canShowDevLinks } from "@/lib/mailer";
 import { consumeToken } from "@/lib/tokens";
 
-export type FormState = { error?: string; ok?: string; devLink?: string; values?: Record<string, string> } | undefined;
+export type FormState =
+  | { error?: string; ok?: string; devLink?: string; values?: Record<string, string>; fields?: Record<string, string> }
+  | undefined;
 
 export async function signupAction(_prev: FormState, form: FormData): Promise<FormState> {
   const businessName = String(form.get("businessName") ?? "").trim();
   const email = String(form.get("email") ?? "").trim();
   const password = String(form.get("password") ?? "");
   const values = { businessName, email };
-  if (!businessName) return { error: "Enter your business name. Customers see it at checkout.", values };
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: "Enter a valid email address.", values };
-  if (password.length < 10) return { error: "Use a password of at least 10 characters.", values };
+  const fields: Record<string, string> = {};
+  if (!businessName) fields.businessName = "Enter your business name. Customers see it at checkout.";
+  if (!email) fields.email = "Enter your email address.";
+  else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) fields.email = "Enter a valid email address, like you@business.com.";
+  if (password.length < 10) fields.password = "Use a password of at least 10 characters.";
+  if (Object.keys(fields).length) return { error: "Check the highlighted fields.", fields, values };
   const res = await createMerchant({ email, password, businessName });
-  if ("error" in res) return { error: res.error, values };
+  if ("error" in res && res.error) return { error: res.error, fields: { email: res.error }, values };
+  if (!("merchant" in res) || !res.merchant) return { error: "Something went wrong. Try again.", values };
   await sendVerifyEmail(await db(), res.merchant);
   await createSession(res.merchant.id);
   await setLivemode(false);
@@ -31,6 +37,9 @@ export async function signupAction(_prev: FormState, form: FormData): Promise<Fo
 export async function loginAction(_prev: FormState, form: FormData): Promise<FormState> {
   const email = String(form.get("email") ?? "").trim().toLowerCase();
   const password = String(form.get("password") ?? "");
+  if (!email || !password) {
+    return { error: "Enter your email and password.", values: { email } };
+  }
   const d = await db();
   const [m] = await d.select().from(merchants).where(eq(merchants.email, email));
   if (!m || !(await verifyPassword(password, m.passwordHash))) {
